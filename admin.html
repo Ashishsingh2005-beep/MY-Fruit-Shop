@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ Admin Command Center</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css"> <!-- Reuse main styles for vars -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --admin-bg: #000000;
+            --admin-card: #111111;
+            --admin-border: rgba(255, 255, 255, 0.1);
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --info: #3B82F6;
+        }
+
+        body {
+            background-color: var(--admin-bg);
+            color: #f1f5f9;
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* --- LOGIN LOCK SCREEN --- */
+        #lock-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: #000000;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            transition: transform 0.5s ease-in-out;
+        }
+
+        #lock-screen.unlocked {
+            transform: translateY(-100%);
+        }
+
+        .lock-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 3rem;
+            border-radius: 24px;
+            border: 1px solid var(--admin-border);
+            text-align: center;
+            width: 350px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .lock-input {
+            width: 100%;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--admin-border);
+            color: white;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            text-align: center;
+            letter-spacing: 5px;
+        }
+
+        .unlock-btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: #000;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1rem;
+            transition: 0.3s;
+        }
+
+        .unlock-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(212, 175, 55, 0.2);
+        }
+
+        /* --- DASHBOARD --- */
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 2rem;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        aside {
+            background: var(--admin-card);
+            border: 1px solid var(--admin-border);
+            border-radius: 24px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            height: calc(100vh - 4rem);
+            position: sticky;
+            top: 2rem;
+        }
+
+        .brand {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .nav-item {
+            padding: 1rem;
+            border-radius: 12px;
+            cursor: pointer;
+            color: #94a3b8;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            border: 1px solid var(--admin-border);
+        }
+
+        /* Main Content */
+        main {
+            overflow-y: auto;
+            padding-right: 1rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--admin-card);
+            padding: 1.5rem;
+            border-radius: 16px;
+            border: 1px solid var(--admin-border);
+        }
+
+        .stat-val {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #fff;
+            margin: 0.5rem 0;
+        }
+
+        .stat-label {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        /* Live Feed */
+        .live-feed {
+            background: var(--admin-card);
+            border: 1px solid var(--admin-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .feed-item {
+            display: flex;
+            gap: 1rem;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.95rem;
+            align-items: center;
+        }
+
+        /* Tables */
+        .table-card {
+            background: var(--admin-card);
+            border: 1px solid var(--admin-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            color: #94a3b8;
+            font-weight: 500;
+            padding: 1rem;
+            border-bottom: 1px solid var(--admin-border);
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+            font-size: 0.95rem;
+        }
+
+        .action-btn {
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: 0.2s;
+        }
+
+        .action-btn:hover {
+            filter: brightness(1.1);
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+
+<body>
+    <audio id="notif-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
+        preload="auto"></audio>
+
+    <!-- LOCK SCREEN -->
+    <div id="lock-screen">
+        <div class="lock-card">
+            <h2 style="margin:0; font-family:'Playfair Display',serif; color: #D4AF37;">ADMIN ACCESS</h2>
+            <p style="color:#94a3b8; margin-top:0.5rem;">Restricted Area</p>
+            <input type="password" id="admin-pin" class="lock-input" placeholder="••••" maxlength="10">
+            <button class="unlock-btn" onclick="authenticate()">UNLOCK SYSTEM</button>
+            <div id="server-status" style="margin-top: 1rem; font-size: 0.8rem; color: #64748b;">
+                Checking Server...
+            </div>
+            <div style="margin-top: 0.5rem;">
+                <a href="index.html" style="color: #64748b; text-decoration: none; font-size: 0.9rem;">← Back to
+                    Shop</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global Error Handler
+        window.onerror = function (msg, url, line) {
+            console.error("Global Error:", msg, url, line);
+        };
+
+        // Check Server Status
+        (async function checkServer() {
+            const statusEl = document.getElementById('server-status');
+            try {
+                // Quick ping to check if server is up
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+                await fetch('http://127.0.0.1:5000/api/settings', {
+                    method: 'GET',
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+                statusEl.innerHTML = '🟢 Server Online';
+                statusEl.style.color = '#10b981';
+            } catch (e) {
+                statusEl.innerHTML = '🔴 Server Offline (Run python backend/server.py)';
+                statusEl.style.color = '#ef4444';
+            }
+        })();
+    </script>
+
+    <!-- MAIN DASHBOARD -->
+    <div class="dashboard-container">
+        <aside>
+            <div class="brand">Control Center 🛡️</div>
+            <div class="nav-item active" onclick="switchView('dashboard')">📊 Dashboard</div>
+            <div class="nav-item" onclick="switchView('users')">👥 Users</div>
+            <div class="nav-item" onclick="switchView('inventory')">📦 Inventory</div>
+            <div class="nav-item" onclick="switchView('complaints')">📢 Complaints</div>
+            <div class="nav-item" onclick="switchView('ratings')">⭐ Ratings</div>
+            <div class="nav-item" onclick="switchView('settings')">⚙️ Settings</div>
+            <div class="nav-item" style="margin-top:auto; color:var(--danger);" onclick="logout()">🔒 Lock System</div>
+        </aside>
+
+        <main>
+            <!-- DASHBOARD VIEW -->
+            <div id="view-dashboard" class="content-view">
+                <div style="display:flex; justify-content:space-between; margin-bottom:2rem;">
+                    <div>
+                        <h1 style="margin:0;">Dashboard Overview</h1>
+                        <p style="color:#94a3b8; margin:0;">Live system monitoring active</p>
+                    </div>
+                    <div style="text-align:right;">
+                        <div id="clock" style="font-family:'Courier New'; font-weight:700; color:var(--primary-color);">
+                            00:00:00</div>
+                        <div style="font-size:0.8rem; color:#94a3b8;">Server Online</div>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Revenue</div>
+                        <div class="stat-val" id="stat-revenue" style="color:#10b981;">₹0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Total Orders</div>
+                        <div class="stat-val" id="stat-total-orders">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Pending Orders</div>
+                        <div class="stat-val" id="stat-pending-orders" style="color:#fbbf24;">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Total Users</div>
+                        <div class="stat-val" id="stat-total-users">0</div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+                    <div class="table-card" style="margin-bottom:0">
+                        <h3 style="margin-bottom: 1.5rem; color:#94a3b8">Sales Performance</h3>
+                        <canvas id="salesChart" style="max-height: 250px;"></canvas>
+                    </div>
+                    <div class="table-card" style="margin-bottom:0">
+                        <h3 style="margin-bottom: 1.5rem; color:#94a3b8">Order Status Distribution</h3>
+                        <canvas id="statusChart" style="max-height: 250px;"></canvas>
+                    </div>
+                </div>
+
+                <!-- AI FORECAST SECTION -->
+                <div class="table-card" style="margin-bottom: 2rem;">
+                    <div class="section-header">
+                        <h3 style="color:#d946ef">🔮 AI Demand Forecast (Next 7 Days)</h3>
+                        <span style="font-size: 0.8rem; color: #94a3b8;">Powered by Gemini 2.0 Flash</span>
+                    </div>
+                    <canvas id="forecastChart" style="max-height: 300px; width: 100%;"></canvas>
+                </div>
+
+            </div>
+
+            <!-- NEW ANALYTICS SECTION -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+                <div class="table-card" style="margin-bottom:0">
+                    <h3 style="margin-bottom: 1.5rem; color:#f59e0b">Category Sales</h3>
+                    <canvas id="categoryChart" style="max-height: 250px;"></canvas>
+                </div>
+                <div class="table-card" style="margin-bottom:0">
+                    <h3 style="margin-bottom: 1.5rem; color:#3b82f6">Top 5 Products</h3>
+                    <canvas id="topItemsChart" style="max-height: 250px;"></canvas>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                <h3 style="color:#94a3b8; margin:0;">🔴 Live Activity Feed</h3>
+                <button onclick="clearActivityFeed()"
+                    style="background:transparent; color:#ef4444; border:1px solid #ef4444; padding:4px 10px; border-radius:6px; font-size:0.8rem; cursor:pointer;">Clear
+                    Logs</button>
+            </div>
+            <div class="live-feed" id="activity-feed">
+                <div style="text-align:center; padding:2rem; color:#64748b;">Waiting for signals...</div>
+            </div>
+
+            <div class="table-card">
+                <div class="section-header">
+                    <h3>💸 Pending Approvals</h3>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>User</th>
+                            <th>Amount</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="payments-body"></tbody>
+                </table>
+                <div id="payments-empty" style="text-align:center; padding:2rem; color:#64748b; display:none;">No
+                    pending payments.</div>
+            </div>
+
+            <div class="table-card">
+                <div class="section-header">
+                    <h3>📦 Recent Orders</h3>
+                    <select id="order-filter" onchange="refreshData()"
+                        style="padding:5px; background:#111; color:#fff; border:1px solid #333; border-radius:5px;">
+                        <option value="All">All Status</option>
+                        <option value="Processing">Processing</option>
+                        <option value="Shipped">Shipped</option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Items</th>
+                            <th>Address</th>
+                            <th>Total</th>
+                            <th>Payment</th>
+                            <th>Delivery</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-body"></tbody>
+                </table>
+            </div>
+    </div>
+
+    <!-- USERS VIEW -->
+    <div id="view-users" class="content-view" style="display:none;">
+        <h1>User Database</h1>
+        <div class="table-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th>Address</th>
+                        <th>Last Login</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="users-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- INVENTORY VIEW -->
+    <div id="view-inventory" class="content-view" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
+            <h1 style="margin:0;">Inventory Management</h1>
+            <button class="action-btn" onclick="toggleAddForm()" style="background:var(--info);">+ Add New
+                Product</button>
+        </div>
+
+        <!-- Add Product Form -->
+        <div id="add-product-form" class="table-card"
+            style="display:none; border:2px solid var(--info); margin-bottom:2rem;">
+            <h3 style="margin-bottom:1.5rem;">Add New Fruit/Vegetable</h3>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+                <div>
+                    <label style="display:block; margin-bottom:0.5rem; color:#94a3b8; font-size:0.9rem;">Product
+                        Name *</label>
+                    <input type="text" id="new-name" placeholder="e.g., Apple, Tomato"
+                        style="width:100%; padding:0.75rem; background:#111; color:white; border:1px solid #333; border-radius:8px;">
+                </div>
+                <div>
+                    <label style="display:block; margin-bottom:0.5rem; color:#94a3b8; font-size:0.9rem;">Selling
+                        Price (₹/kg) *</label>
+                    <input type="number" id="new-price" placeholder="e.g., 120"
+                        style="width:100%; padding:0.75rem; background:#111; color:white; border:1px solid #333; border-radius:8px;">
+                </div>
+                <div>
+                    <label style="display:block; margin-bottom:0.5rem; color:#94a3b8; font-size:0.9rem;">Original
+                        Price (₹/kg) <small style="color:#666;">(for discount display)</small></label>
+                    <input type="number" id="new-original-price" placeholder="e.g., 180"
+                        style="width:100%; padding:0.75rem; background:#111; color:white; border:1px solid #333; border-radius:8px;">
+                </div>
+                <div>
+                    <label style="display:block; margin-bottom:0.5rem; color:#94a3b8; font-size:0.9rem;">Category
+                        *</label>
+                    <select id="new-category"
+                        style="width:100%; padding:0.75rem; background:#111; color:white; border:1px solid #333; border-radius:8px;">
+                        <option value="Fruits">Fruits</option>
+                        <option value="Vegetables">Vegetables</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display:block; margin-bottom:0.5rem; color:#94a3b8; font-size:0.9rem;">Color
+                        Code</label>
+                    <input type="color" id="new-color" value="#FF8C00"
+                        style="width:100%; height:45px; background:#111; border:1px solid #333; border-radius:8px;">
+                </div>
+                <div style="grid-column: span 2;">
+                    <label
+                        style="display:block; margin-bottom:0.5rem; color:#94a3b8; font-size:0.9rem;">Description</label>
+                    <textarea id="new-desc" placeholder="Brief description of the product" rows="3"
+                        style="width:100%; padding:0.75rem; background:#111; color:white; border:1px solid #333; border-radius:8px; resize:vertical;"></textarea>
+                </div>
+            </div>
+            <div style="margin-top:1.5rem; display:flex; gap:1rem;">
+                <button class="action-btn" onclick="saveNewProduct()" style="background:var(--success);">💾 Save
+                    Product</button>
+                <button class="action-btn" onclick="toggleAddForm()" style="background:var(--danger);">❌
+                    Cancel</button>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Icon</th>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Selling Price (₹)</th>
+                        <th>Original Price (₹)</th>
+                        <th>Discount</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="inventory-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- RATINGS VIEW -->
+    <div id="view-ratings" class="content-view" style="display:none;">
+        <h1>Product Ratings</h1>
+        <div class="table-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>User</th>
+                        <th>Rating</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody id="ratings-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- COMPLAINTS VIEW -->
+    <div id="view-complaints" class="content-view" style="display:none;">
+        <h1>User Complaints</h1>
+        <div class="table-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Phone</th>
+                        <th>Issue</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="complaints-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SETTINGS VIEW -->
+    <div id="view-settings" class="content-view" style="display:none;">
+        <h1>System Settings</h1>
+        <div class="table-card">
+            <h3>Global Configuration</h3>
+            <div style="margin-top: 1.5rem; max-width: 500px;">
+                <label style="display:block; margin-bottom:0.5rem; color:#94a3b8; font-weight:600;">Weekend Sale
+                    Discount (%)</label>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <input type="number" id="setting-weekend-discount" value="5" min="0" max="90"
+                        style="flex:1; padding:0.8rem; background:rgba(0,0,0,0.2); color:white; border:1px solid var(--admin-border); border-radius:8px; font-size: 1.1rem;">
+                    <button class="action-btn" onclick="saveSettings()" style="padding: 0.8rem 1.5rem;">Save
+                        Config</button>
+                </div>
+                <p style="font-size: 0.9rem; color: #64748b; margin-top: 0.8rem;">
+                    ℹ️ This extra discount is applied to all items in the Weekend Sale section.
+                    <br>Example: If set to 10%, a ₹100 item becomes ₹90.
+                </p>
+                </p>
+            </div>
+
+            <div
+                style="margin-top: 2.5rem; max-width: 500px; padding-top: 2rem; border-top: 1px solid var(--admin-border);">
+                <h3 style="margin-bottom: 1.5rem; color: #d946ef;">Subscription Pricing</h3>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display:block; margin-bottom:0.5rem; color:#94a3b8; font-weight:600;">Weekly Wellness
+                        Box (₹/week)</label>
+                    <input type="number" id="setting-sub-weekly" value="499" min="0"
+                        style="width: 100%; padding:0.8rem; background:rgba(0,0,0,0.2); color:white; border:1px solid var(--admin-border); border-radius:8px; font-size: 1.1rem;">
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display:block; margin-bottom:0.5rem; color:#94a3b8; font-weight:600;">Daily Essentials
+                        (₹/month)</label>
+                    <input type="number" id="setting-sub-daily" value="1999" min="0"
+                        style="width: 100%; padding:0.8rem; background:rgba(0,0,0,0.2); color:white; border:1px solid var(--admin-border); border-radius:8px; font-size: 1.1rem;">
+                </div>
+
+                <button class="action-btn" onclick="saveSettings()"
+                    style="padding: 0.8rem 1.5rem; background: #d946ef;">Update Prices</button>
+            </div>
+        </div>
+
+        <div class="table-card" style="margin-top: 2rem; opacity: 0.7;">
+            <h3>Debug Info</h3>
+            <p style="color: #94a3b8;">Current Session Token: <span id="setting-token"
+                    style="font-family: monospace; color: #fff;">...</span></p>
+        </div>
+    </div>
+    </main>
+    </div>
+
+    <script>
+        const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://127.0.0.1:5000' : '';
+        let authToken = sessionStorage.getItem('adminToken');
+
+        async function checkAuth() {
+            if (!authToken) return;
+            document.getElementById('lock-screen').classList.add('unlocked');
+            startLiveFeed();
+            refreshData();
+            updateStats();
+            loadSettings();
+        }
+
+        async function authenticate() {
+            const pin = document.getElementById('admin-pin').value;
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pin })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    authToken = data.token;
+                    sessionStorage.setItem('adminToken', authToken);
+                    document.getElementById('lock-screen').classList.add('unlocked');
+                    startLiveFeed();
+                    refreshData();
+                    updateStats();
+                } else {
+                    alert("❌ Invalid PIN");
+                }
+            } catch (e) {
+                console.error("Login failed", e);
+                alert("🔴 Connection Failed: Server is offline or unreachable.\nMake sure 'python backend/server.py' is running.");
+            }
+        }
+
+        function logout() {
+            sessionStorage.removeItem('adminToken');
+            location.reload();
+        }
+
+        async function updateStats() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/stats`);
+                const data = await res.json();
+                document.getElementById('stat-revenue').textContent = `₹${data.totalRevenue}`;
+                document.getElementById('stat-total-orders').textContent = data.totalOrders;
+                document.getElementById('stat-pending-orders').textContent = data.pendingOrders;
+                document.getElementById('stat-total-users').textContent = data.totalUsers;
+            } catch (e) { }
+        }
+
+        let lastCount = -1;
+        function checkNew(orders) {
+            if (lastCount === -1) { lastCount = orders.length; return; }
+            if (orders.length > lastCount) {
+                document.getElementById('notif-sound').play().catch(() => { });
+                lastCount = orders.length;
+            }
+        }
+
+        let salesChart = null;
+        let statusChart = null;
+        let forecastChart = null;
+        let categoryChart = null;
+        let topItemsChart = null;
+
+        function updateCharts(orders) {
+            if (typeof Chart === 'undefined') {
+                console.warn("Chart.js not loaded. Skipping charts.");
+                return;
+            }
+
+            const salesCtx = document.getElementById('salesChart').getContext('2d');
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+
+            // Process Sales Data (last 7 days)
+            const dailySales = {};
+            orders.forEach(o => {
+                const date = o.time.split(',')[0]; // Simple date extraction
+                dailySales[date] = (dailySales[date] || 0) + parseFloat(o.total);
+            });
+            const labels = Object.keys(dailySales).slice(-7);
+            const data = labels.map(l => dailySales[l]);
+
+            if (salesChart) salesChart.destroy();
+            salesChart = new Chart(salesCtx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Revenue (₹)',
+                        data,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } }
+                }
+            });
+
+            // Process Status Data
+            const statusCounts = { 'Processing': 0, 'Shipped': 0, 'Delivered': 0, 'Cancelled': 0 };
+            orders.forEach(o => statusCounts[o.delivery_status] = (statusCounts[o.delivery_status] || 0) + 1);
+
+            if (statusChart) statusChart.destroy();
+            statusChart = new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(statusCounts),
+                    datasets: [{
+                        data: Object.values(statusCounts),
+                        backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', boxWidth: 10 } } },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        async function updateForecastChart() {
+            try {
+                const res = await fetch(`${API_BASE}/api/demand-forecast`);
+                const data = await res.json();
+                if (!data.success) return;
+
+                const ctx = document.getElementById('forecastChart').getContext('2d');
+                const labels = data.forecast.map(f => f.day);
+                const values = data.forecast.map(f => f.sales);
+
+                if (forecastChart) forecastChart.destroy();
+
+                // Create Gradient
+                const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                gradient.addColorStop(0, 'rgba(217, 70, 239, 0.5)'); // Fuchsia
+                gradient.addColorStop(1, 'rgba(217, 70, 239, 0.0)');
+
+                forecastChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Predicted Sales',
+                            data: values,
+                            borderColor: '#d946ef',
+                            backgroundColor: gradient,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#d946ef',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: '#d946ef'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    label: function (context) {
+                                        return `Forecast: ${context.parsed.y} Orders`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(255,255,255,0.05)' },
+                                ticks: { color: '#94a3b8' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#94a3b8' }
+                            }
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error("Forecast Error:", e);
+            }
+        }
+
+        async function updateAnalyticsCharts() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/analytics`);
+                const data = await res.json();
+                if (!data.success) return;
+
+                // Category Chart
+                const catCtx = document.getElementById('categoryChart').getContext('2d');
+                if (categoryChart) categoryChart.destroy();
+                categoryChart = new Chart(catCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: Object.keys(data.category_sales),
+                        datasets: [{
+                            data: Object.values(data.category_sales),
+                            backgroundColor: ['#f59e0b', '#10b981', '#ef4444', '#3b82f6'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: { plugins: { legend: { position: 'right', labels: { color: '#94a3b8' } } } }
+                });
+
+                // Top Items Chart
+                const topCtx = document.getElementById('topItemsChart').getContext('2d');
+                if (topItemsChart) topItemsChart.destroy();
+                topItemsChart = new Chart(topCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.top_products.map(p => p.name),
+                        datasets: [{
+                            label: 'Sales',
+                            data: data.top_products.map(p => p.sales),
+                            backgroundColor: '#3b82f6',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        plugins: { legend: { display: false } },
+                        scales: { x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }, y: { ticks: { color: '#fff' } } }
+                    }
+                });
+
+            } catch (e) { console.error("Analytics Error", e); }
+        }
+
+        async function refreshData() {
+            try {
+                const [pRes, oRes] = await Promise.all([
+                    fetch(`${API_BASE}/api/admin/pending-payments`),
+                    fetch(`${API_BASE}/api/orders`)
+                ]);
+                const payments = await pRes.json();
+                const orders = await oRes.json();
+                checkNew(orders);
+                updateCharts(orders);
+                updateForecastChart();
+                updateAnalyticsCharts();
+
+                const pBody = document.getElementById('payments-body');
+                document.getElementById('payments-empty').style.display = payments.length ? 'none' : 'block';
+                pBody.innerHTML = payments.map(p => `
+                    <tr>
+                        <td>${p.timestamp || p.time}</td>
+                        <td>${p.user}</td>
+                        <td style="color:#fbbf24; font-weight:700;">₹${p.amount}</td>
+                        <td><button class="action-btn" onclick="approve('${p.id}')">Approve</button></td>
+                    </tr>
+                `).join('');
+
+                const filt = document.getElementById('order-filter').value;
+                const filtered = filt === 'All' ? orders : orders.filter(o => o.delivery_status === filt);
+                document.getElementById('orders-body').innerHTML = filtered.map(o => `
+                    <tr>
+                        <td style="color:var(--primary-color)">#${o.id.split('-')[1]}</td>
+                        <td>${o.name}</td>
+                        <td style="font-size:0.8rem;">${o.items}</td>
+                        <td style="font-size:0.8rem; color:#ccc;">${o.address}</td>
+                        <td>₹${o.total}</td>
+                        <td>
+                            <div style="font-size:0.8rem; color:#93c5fd; margin-bottom:4px; font-weight:bold;">${o.payment || 'Unknown'}</div>
+                            <select onchange="updOrder('${o.id}','payment_status',this.value)" style="padding:4px; background:#111; color:white; border:1px solid #333; border-radius:4px; width: 100%;">
+                                <option value="Pending" ${o.payment_status === 'Pending' ? 'selected' : ''}>Pending</option>
+                                <option value="Paid" ${o.payment_status === 'Paid' ? 'selected' : ''}>Paid</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select onchange="updOrder('${o.id}','delivery_status',this.value)" style="padding:4px; background:#111; color:white; border:1px solid #333; border-radius:4px; width: 100%;">
+                                <option value="Processing" ${o.delivery_status === 'Processing' ? 'selected' : ''}>Processing</option>
+                                <option value="Shipped" ${o.delivery_status === 'Shipped' ? 'selected' : ''}>Shipped</option>
+                                <option value="Delivered" ${o.delivery_status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+                                <option value="Cancelled" ${o.delivery_status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                            </select>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) { }
+        }
+
+        async function updOrder(id, type, val) {
+            await fetch(`${API_BASE}/api/admin/update-order`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ order_id: id, type, value: val })
+            });
+            refreshData();
+            updateStats();
+        }
+
+        async function approve(id) {
+            await fetch(`${API_BASE}/api/admin/approve-payment`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ req_id: id })
+            });
+            refreshData();
+            updateStats();
+        }
+
+        function startLiveFeed() {
+            setInterval(fetchAct, 5000);
+            setInterval(() => {
+                document.getElementById('clock').innerText = new Date().toLocaleTimeString();
+            }, 1000);
+            fetchAct();
+        }
+
+        async function fetchAct() {
+            try {
+                const res = await fetch(`${API_BASE}/api/activities`);
+                const data = await res.json();
+                document.getElementById('activity-feed').innerHTML = data.slice().reverse().map(a => `
+                    <div class="feed-item">
+                        <span style="color:#64748b; font-size:0.8rem;">[${a.time}]</span>
+                        <span><strong>${a.user}</strong> ${a.type}: ${a.details}</span>
+                    </div>
+                `).join('');
+            } catch (e) { }
+        }
+
+        async function clearActivityFeed() {
+            await fetch(`${API_BASE}/api/clear-activities`, { method: 'POST' });
+            fetchAct();
+        }
+
+        function switchView(v) {
+            document.querySelectorAll('.content-view').forEach(el => el.style.display = 'none');
+            document.getElementById(`view-${v}`).style.display = 'block';
+            if (v === 'inventory') fetchInv();
+            if (v === 'users') fetchUsr();
+            if (v === 'complaints') fetchComp();
+            if (v === 'ratings') fetchRate();
+            if (v === 'settings') document.getElementById('setting-token').innerText = authToken;
+        }
+
+        async function fetchInv() {
+            const res = await fetch(`${API_BASE}/api/products`);
+            const data = await res.json();
+            document.getElementById('inventory-body').innerHTML = data.map(p => {
+                const discount = p.originalPrice ? Math.round((1 - p.price / p.originalPrice) * 100) : 0;
+                return `
+                <tr>
+                    <td><div style="width:20px; height:20px; border-radius:50%; background:${p.color}"></div></td>
+                    <td>${p.name}</td>
+                    <td>${p.category}</td>
+                    <td>
+                        <input type="number" value="${p.price}" id="p-${p.id}" style="width:70px; padding:4px; background:#111; color:white; border:1px solid #333; border-radius:4px;">
+                        <button onclick="updPrice(${p.id})" style="padding:4px 8px; background:var(--success); border:none; color:white; border-radius:4px; cursor:pointer; font-size:0.75rem; margin-left:4px;">💾</button>
+                    </td>
+                    <td>
+                        <input type="number" value="${p.originalPrice || ''}" id="op-${p.id}" placeholder="No discount" style="width:70px; padding:4px; background:#111; color:white; border:1px solid #333; border-radius:4px;">
+                        <button onclick="updOriginalPrice(${p.id})" style="padding:4px 8px; background:var(--info); border:none; color:white; border-radius:4px; cursor:pointer; font-size:0.75rem; margin-left:4px;">💾</button>
+                    </td>
+                    <td>
+                        ${discount > 0 ? `<span style="color:var(--success); font-weight:600;">${discount}% OFF</span>` : '<span style="color:#666;">-</span>'}
+                    </td>
+                    <td>
+                        <button onclick="togStock(${p.id})" style="margin-right:5px; padding:4px 8px; border-radius:4px; font-size:0.75rem;">${p.in_stock ? '✅ Stock' : '❌ Out'}</button>
+                        <button onclick="deleteProduct(${p.id})" style="background:var(--danger); border:none; color:white; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.75rem;">🗑️</button>
+                    </td>
+                </tr>
+            `}).join('');
+        }
+
+        async function updPrice(id) {
+            const price = document.getElementById(`p-${id}`).value;
+            await fetch(`${API_BASE}/api/admin/update-price`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, price })
+            });
+            alert('✅ Selling price updated!');
+            fetchInv();
+            updateStats();
+        }
+
+        async function updOriginalPrice(id) {
+            const originalPrice = document.getElementById(`op-${id}`).value;
+            await fetch(`${API_BASE}/api/admin/update-original-price`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, originalPrice: originalPrice || null })
+            });
+            alert('✅ Original price updated!');
+            fetchInv();
+        }
+
+        async function togStock(id) {
+            await fetch(`${API_BASE}/api/admin/toggle-stock`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+            fetchInv();
+        }
+
+        async function fetchUsr() {
+            const res = await fetch(`${API_BASE}/api/admin/users`);
+            const data = await res.json();
+            document.getElementById('users-body').innerHTML = data.map(u => `
+                <tr>
+                    <td>${u.name}</td>
+                    <td>${u.phone}</td>
+                    <td>${u.email}</td>
+                    <td>${u.address}</td>
+                    <td>${u.last_login}</td>
+                    <td><button onclick="togBan('${u.phone}', ${u.is_banned})">${u.is_banned ? 'Unban' : 'Ban'}</button></td>
+                </tr>
+            `).join('');
+        }
+
+        async function togBan(phone, stat) {
+            await fetch(`${API_BASE}/api/admin/ban-user`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone, action: stat ? 'unban' : 'ban' })
+            });
+            fetchUsr();
+        }
+
+        async function fetchComp() {
+            const res = await fetch(`${API_BASE}/api/admin/complaints`);
+            const data = await res.json();
+            document.getElementById('complaints-body').innerHTML = data.map(c => `
+                <tr>
+                    <td>${c.time}</td>
+                    <td>${c.type}</td>
+                    <td>${c.phone}</td>
+                    <td>${c.desc}</td>
+                    <td>${c.status}</td>
+                    <td>${c.status === 'Open' ? `<button onclick="resComp('${c.id}')">Res</button>` : 'Done'}</td>
+                </tr>
+            `).join('');
+        }
+
+        async function resComp(id) {
+            const msg = prompt("Reply:");
+            if (!msg) return;
+            await fetch(`${API_BASE}/api/admin/resolve-complaint`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, reply: msg })
+            });
+            fetchComp();
+        }
+
+        async function fetchRate() {
+            const res = await fetch(`${API_BASE}/api/admin/ratings`);
+            const data = await res.json();
+            document.getElementById('ratings-body').innerHTML = data.map(r => `
+                <tr>
+                    <td>${r.product_id}</td>
+                    <td>${r.user}</td>
+                    <td>${'★'.repeat(parseInt(r.rating))}</td>
+                    <td>${r.time}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Add Product Functions
+        function toggleAddForm() {
+            const form = document.getElementById('add-product-form');
+            if (form.style.display === 'none') {
+                form.style.display = 'block';
+                // Clear form
+                document.getElementById('new-name').value = '';
+                document.getElementById('new-price').value = '';
+                document.getElementById('new-original-price').value = '';
+                document.getElementById('new-category').value = 'Fruits';
+                document.getElementById('new-color').value = '#FF8C00';
+                document.getElementById('new-desc').value = '';
+            } else {
+                form.style.display = 'none';
+            }
+        }
+
+        async function saveNewProduct() {
+            const name = document.getElementById('new-name').value.trim();
+            const price = document.getElementById('new-price').value;
+            const originalPrice = document.getElementById('new-original-price').value;
+            const category = document.getElementById('new-category').value;
+            const color = document.getElementById('new-color').value;
+            const description = document.getElementById('new-desc').value.trim();
+
+            // Validation
+            if (!name) {
+                alert('❌ Please enter product name!');
+                return;
+            }
+            if (!price || price <= 0) {
+                alert('❌ Please enter valid price!');
+                return;
+            }
+
+            const productData = {
+                name: name,
+                price: parseInt(price),
+                category: category,
+                color: color,
+                description: description || `Fresh ${name}`
+            };
+
+            // Add originalPrice if provided
+            if (originalPrice && originalPrice > price) {
+                productData.originalPrice = parseInt(originalPrice);
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/add-product`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(productData)
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    alert('✅ Product added successfully!');
+                    toggleAddForm();
+                    fetchInv(); // Refresh inventory
+                } else {
+                    alert('❌ Failed to add product: ' + (data.message || 'Unknown error'));
+                }
+            } catch (e) {
+                console.error('Error adding product:', e);
+                alert('❌ Error: ' + e.message);
+            }
+        }
+
+        async function deleteProduct(id) {
+            if (!confirm('⚠️ Are you sure you want to delete this product?')) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/delete-product`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    alert('✅ Product deleted successfully!');
+                    fetchInv(); // Refresh inventory
+                } else {
+                    alert('❌ Failed to delete product');
+                }
+            } catch (e) {
+                console.error('Error deleting product:', e);
+                alert('❌ Error: ' + e.message);
+            }
+        }
+
+        async function saveSettings() {
+            const weekendVal = document.getElementById('setting-weekend-discount').value;
+            const weeklyPrice = document.getElementById('setting-sub-weekly').value;
+            const dailyPrice = document.getElementById('setting-sub-daily').value;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/settings`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        weekend_discount: parseInt(weekendVal),
+                        sub_weekly_price: parseInt(weeklyPrice),
+                        sub_daily_price: parseInt(dailyPrice)
+                    })
+                });
+                const data = await res.json();
+                if (data.success) alert("Settings Saved!");
+                else alert("Failed to save");
+            } catch (e) { alert("Error saving settings"); }
+        }
+
+        async function loadSettings() {
+            try {
+                const res = await fetch(`${API_BASE}/api/settings`);
+                const data = await res.json();
+                if (data.weekend_discount !== undefined) document.getElementById('setting-weekend-discount').value = data.weekend_discount;
+                if (data.sub_weekly_price !== undefined) document.getElementById('setting-sub-weekly').value = data.sub_weekly_price;
+                if (data.sub_daily_price !== undefined) document.getElementById('setting-sub-daily').value = data.sub_daily_price;
+            } catch (e) { }
+        }
+
+        checkAuth();
+        setInterval(refreshData, 10000);
+    </script>
+</body>
+
+</html>

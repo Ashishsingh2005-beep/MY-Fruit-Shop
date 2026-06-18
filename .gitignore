@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables
+.env
+
+# Local data (User data, orders, logs should not be in git)
+backend/backend_data/
+backend/activity.log
+*.log
+
+# VS Code
+.vscode/
+
+# System
+Thumbs.db
+Desktop.ini

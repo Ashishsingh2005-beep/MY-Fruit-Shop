@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Premium Fresh Fruit Shop - Taste the Luxury of Nature" />
+  <title>Ajay Fruit Mart | Premium Exotic Fruits</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Playfair+Display:ital,wght@0,600;1,600&display=swap"
+    rel="stylesheet">
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+  <link rel="stylesheet" href="style.css?v=final_rich_v10" />
+  <link rel="stylesheet" href="style_mobile.css?v=final_rich_v10" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+  <!-- PWA Setup -->
+  <link rel="manifest" href="manifest.json">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(req => console.log('Service Worker Registered!'))
+          .catch(err => console.log('Service Worker Failed', err));
+      });
+    }
+  </script>
+
+  <!-- FORCE TRANSPARENCY NUKE -->
+  <style>
+    body,
+    html,
+    main,
+    section,
+    .hero,
+    .container,
+    #app-main {
+      background: transparent !important;
+      background-color: transparent !important;
+      background-image: none !important;
+    }
+
+    .video-bg-container {
+      background-image: url('https://images.unsplash.com/photo-1610832958506-aa56368176cf?q=80&w=2070&auto=format&fit=crop') !important;
+      background-size: cover !important;
+      background-position: center !important;
+    }
+  </style>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="assets/qr_final.js"></script>
+
+  <!-- MOVED CRITICAL SCRIPT TO HEAD FOR SAFETY -->
+  <script>
+    // Ensure this function exists globally and immediately
+    window.applyCoupon = function (code) {
+      // Visual Feedback (Alert is 100% visible)
+      try {
+        alert("🎉 Coupon " + code + " Applied!\nYou saved ₹50!");
+      } catch (e) { console.log("Alert blocked"); }
+
+      // Logical Application (Set global flag for app.js to pick up)
+      window.appliedCoupon = { code: code, amount: 50 };
+
+      // Redirect/Scroll to Products IMMEDIATELY
+      const productSection = document.getElementById('products-section') || document.getElementById('products');
+      if (productSection) {
+        productSection.scrollIntoView({ behavior: 'smooth' });
+      }
+
+      // Update UI if app is loaded
+      if (window.updateCartCalculations) window.updateCartCalculations();
+    };
+  </script>
+</head>
+
+<body>
+  <!-- Cinematic Video Background -->
+  <div class="video-bg-container">
+    <div class="video-overlay"></div>
+    <video id="vbg" autoplay loop muted playsinline class="video-bg"
+      style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;">
+      <source
+        src="https://assets.mixkit.co/videos/preview/mixkit-fresh-market-fruits-and-vegetables-spread-40432-large.mp4"
+        type="video/mp4">
+      <source src="https://assets.mixkit.co/videos/preview/mixkit-vegetables-and-fruits-background-40010-large.mp4"
+        type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+    <script>
+      // Force Video Play on Load
+      window.addEventListener('load', function () {
+        var video = document.getElementById('vbg');
+        if (video) {
+          video.play().catch(function (error) {
+            console.log("Autoplay blocked, waiting for click");
+            // If prevented, play on first interaction
+            document.addEventListener('click', function () {
+              video.play();
+            }, { once: true });
+          });
+        }
+      });
+    </script>
+  </div>
+
+  <header class="glass-header">
+    <nav class="navbar container">
+      <a href="#" class="logo">Ajay <span>Fruit Mart</span></a>
+      <ul class="nav-links">
+        <li><a href="#home" class="active">Home</a></li>
+        <li><a href="#fruits-section"
+            onclick="setTimeout(()=>document.getElementById('fruits-section').scrollIntoView(), 100)">Collection</a>
+        </li>
+        <li><a href="#about">Our Story</a></li>
+        <li><a href="#subscriptions" style="color: #d946ef; font-weight: bold;">Plans</a></li>
+      </ul>
+      <div class="nav-actions">
+        <button id="theme-toggle" class="icon-btn" aria-label="Toggle Theme" onclick="toggleTheme()"
+          style="margin-right: 0.5rem;">
+          <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+        <button id="login-btn" class="btn-outline login-btn-nav" onclick="loginUser()">Login</button>
+        <button class="icon-btn" aria-label="Profile" onclick="window.location.hash='#profile'">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </button>
+        <button class="wishlist-btn-nav icon-btn" aria-label="Wishlist" onclick="window.location.hash='#wishlist'">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path
+              d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z">
+            </path>
+          </svg>
+        </button>
+        <div class="search-bar" style="position: relative;">
+          <input type="text" id="search-input" placeholder="Search fruits..." oninput="handleSearch(this.value)"
+            autocomplete="off">
+          <div id="search-suggestions" class="suggestions-dropdown hidden"></div>
+        </div>
+        <button class="icon-btn" aria-label="Search" onclick="document.getElementById('search-input').focus()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
+        <button class="cart-btn" aria-label="Cart" onclick="window.location.hash='#cart'">
+          <span class="cart-count">0</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+        </button>
+      </div>
+      <button class="mobile-toggle" aria-label="Menu">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </button>
+    </nav>
+  </header>
+
+  <main id="app-main">
+    <section id="home" class="hero">
+      <div class="hero-content container">
+        <div class="reveal delay-100"
+          style="display: flex; gap: 1rem; align-items: center; justify-content: center; margin-bottom: 1rem;">
+          <span class="badge">Fresh & Organic</span>
+          <span class="badge"
+            style="background: #D32F2F; color: white; border: 1px solid #B71C1C; box-shadow: 0 4px 15px rgba(211, 47, 47, 0.4);">⚡
+            Flat 5% OFF vs Market Price</span>
+        </div>
+        <h1>Taste the <br /><span class="text-gradient">Luxury of Nature</span></h1>
+        <p class="reveal delay-200">Hand-picked exotic fruits delivered to your doorstep. Experience the vibrant flavors
+          of the tropics.</p>
+        <div class="hero-buttons reveal delay-300">
+          <a href="#products-section" class="btn btn-primary"
+            onclick="window.location.hash=''; setTimeout(()=>document.getElementById('products-section').scrollIntoView(), 100)">Shop
+            Collection</a>
+          <a href="#about" class="btn btn-outline">Learn More</a>
+        </div>
+      </div>
+      <div class="scroll-down">
+        <span>Scroll</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 13l5 5 5-5M7 6l5 5 5-5" />
+        </svg>
+      </div>
+    </section>
+
+    <section class="banners-section container">
+      <!-- RESTORED COUPON BANNER -->
+      <a href="javascript:applyCoupon('WELCOME50')" class="offer-banner b4"
+        style="background: linear-gradient(135deg, #ec4899, #be123c); opacity: 1; transform: none; text-decoration: none; display: flex; flex-direction: column; justify-content: center; position: relative; z-index: 50; border-radius: 20px; padding: 2rem; box-shadow: 0 10px 30px rgba(236, 72, 153, 0.3); min-width: 280px; min-height: 200px; color: white; margin-bottom: 1.5rem; width: 100%;">
+        <div class="banner-badge"
+          style="background: #e11d48; position: absolute; top: 20px; right: 20px; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
+          Special</div>
+        <div class="banner-content">
+          <h3 style="color: white; font-size: 1.8rem; margin: 0 0 10px 0; font-family: var(--font-heading);">First
+            Order?</h3>
+          <p style="color: rgba(255,255,255,0.9); margin: 0 0 15px 0;">Get ₹50 OFF Instantly</p>
+          <div
+            style="background: rgba(255,255,255,0.2); padding: 8px 15px; border-radius: 8px; font-family: monospace; display: inline-block; margin-bottom: 15px;">
+            Code: WELCOME50</div>
+          <div class="btn btn-outline"
+            style="border: 1px solid white; color: white; padding: 8px 20px; display: inline-block; border-radius: 50px; font-weight: 600; text-transform: uppercase; font-size: 0.9rem;">
+            CLAIM NOW</div>
+        </div>
+      </a>
+
+      <div class="banners-container"
+        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; overflow: visible;">
+
+        <!-- Box 1: Mangoes -->
+        <div class="offer-banner b1 reveal" style="width: 100%; min-width: 0;">
+          <div class="banner-badge">Trending</div>
+          <div class="banner-content">
+            <h3>Exotic Mangoes</h3>
+            <p>Direct from Ratnagiri farms</p>
+            <button class="btn btn-outline"
+              style="border-color:white; color:white; padding:8px 20px; border-radius:50px; text-transform:uppercase; font-size:0.85rem; font-weight:600;"
+              onclick="filterProducts('mango')">EXPLORE</button>
+          </div>
+        </div>
+
+        <!-- Box 2: Weekend Sale -->
+        <div class="offer-banner b2 reveal" style="width: 100%; min-width: 0;">
+          <div class="banner-badge">Offer</div>
+          <div class="banner-content">
+            <h3>Weekend Sale</h3>
+            <p>Extra <span id="weekend-discount-display">5</span>% OFF on Seasonal Boxes</p>
+            <p style="font-size: 0.75rem; opacity: 0.8; margin-top: 5px;">(Sunday Only)</p>
+            <button class="btn btn-outline"
+              style="border-color:white; color:white; padding:8px 20px; border-radius:50px; text-transform:uppercase; font-size:0.85rem; font-weight:600;"
+              onclick="renderSalePage()">CLAIM NOW</button>
+          </div>
+        </div>
+
+        <!-- Box 3: Dragon Fruit -->
+        <div class="offer-banner b3 reveal" style="width: 100%; min-width: 0;">
+          <div class="banner-badge">New Arrival</div>
+          <div class="banner-content">
+            <h3>Dragon Fruit</h3>
+            <p>Rich in Vitamin C & Fiber</p>
+            <button class="btn btn-outline"
+              style="border-color:white; color:white; padding:8px 20px; border-radius:50px; text-transform:uppercase; font-size:0.85rem; font-weight:600;"
+              onclick="window.location.hash='#product/102'">BUY NOW</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="products" class="products container">
+      <div class="section-header reveal">
+        <h2>Curated Collection</h2>
+        <p>Our most popular seasonal picks</p>
+      </div>
+      <!-- Product Grid will be populated by JS -->
+      <div class="product-grid" id="product-grid">
+        <!-- Dynamic Content -->
+      </div>
+    </section>
+  </main>
+
+  <div id="quick-view-modal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close-modal"
+        onclick="document.getElementById('quick-view-modal').classList.add('hidden')">&times;</span>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Login/Signup Modal -->
+  <div id="login-modal" class="modal hidden">
+    <div class="modal-content login-content">
+      <span class="close-modal" onclick="closeLoginModal()">&times;</span>
+
+      <!-- Option 1: Initial Selection -->
+      <div id="login-selection" class="login-step">
+        <h2>Welcome</h2>
+        <p>Please login to continue</p>
+        <div class="login-actions">
+          <button class="btn btn-primary full-width" onclick="showSignInForm()">Sign In</button>
+          <button class="btn btn-outline full-width" onclick="showSignUpForm()">Sign Up</button>
+        </div>
+      </div>
+
+      <!-- Option 2: Sign In Form -->
+      <div id="signin-form" class="login-step hidden">
+        <h2>Sign In</h2>
+        <p>Welcome back!</p>
+        <div class="form-group">
+          <input type="tel" id="signin-phone" placeholder="Enter Phone Number" />
+        </div>
+        <button class="btn btn-primary full-width" onclick="processSignIn()">Login</button>
+        <p class="switch-text">New user? <span onclick="showSignUpForm()">Create account</span></p>
+      </div>
+
+      <!-- Option 3: Sign Up Form -->
+      <div id="signup-form" class="login-step hidden">
+        <h2>Create Account</h2>
+        <div class="form-group">
+          <input type="text" id="signup-name" placeholder="Full Name" />
+        </div>
+        <div class="form-group">
+          <input type="tel" id="signup-phone" placeholder="Phone Number" />
+        </div>
+        <div class="form-group">
+          <input type="email" id="signup-email" placeholder="Email (Optional)" />
+        </div>
+        <div class="form-group">
+          <input type="text" id="signup-address" placeholder="Delivery Address" />
+        </div>
+        <button class="btn btn-primary full-width" onclick="processSignUp()">Register</button>
+        <p class="switch-text">Already have an account? <span onclick="showSignInForm()">Sign In</span></p>
+      </div>
+
+      <!-- Option 4: OTP Form -->
+      <div id="otp-form" class="login-step hidden">
+        <h2>Verify Phone</h2>
+        <p>Enter the 6-digit code sent to <br /><b id="otp-phone-display">...</b></p>
+        <div class="form-group">
+          <input type="text" id="otp-input" placeholder="XXXXXX" maxlength="6"
+            style="text-align:center; letter-spacing: 5px; font-weight: bold; font-size: 1.5rem;" />
+        </div>
+        <button class="btn btn-primary full-width" onclick="verifyOtpAndLogin()">Verify & Login</button>
+        <p class="switch-text" style="font-size: 0.9em; margin-top: 10px;">Didn't receive code? <span
+            onclick="resendOtp()" id="resend-link" style="cursor:pointer; color:var(--primary-color);">Resend</span></p>
+        <p class="switch-text"><span onclick="showSignInForm()">Back</span></p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- COMPLAINT MODAL -->
+  <div id="complaint-modal" class="modal hidden">
+    <div class="modal-content glass-card">
+      <span class="close-modal" onclick="closeComplaintModal()">&times;</span>
+      <h2>📢 Report Issue</h2>
+      <p style="color:#64748b; margin-bottom:1rem;">We're sorry for the inconvenience.</p>
+      <input type="hidden" id="complaint-order-id">
+
+      <label style="display:block; text-align:left; color:#1e293b; margin-bottom:5px;">Issue Type</label>
+      <select id="complaint-type" class="form-input">
+        <option value="Delivery">Late / No Delivery</option>
+        <option value="Product">Damaged / Wrong Product</option>
+        <option value="Other">Other</option>
+      </select>
+
+      <label style="display:block; text-align:left; color:#1e293b; margin-bottom:5px;">Description</label>
+      <textarea id="complaint-desc" class="form-input" rows="4" placeholder="Please describe the issue..."></textarea>
+
+      <button class="btn-primary" onclick="submitComplaint()" style="width:100%;">Submit Report</button>
+    </div>
+  </div>
+
+  <!-- RATING MODAL -->
+  <div id="rating-modal" class="modal hidden">
+    <div class="modal-content glass-card">
+      <span class="close-modal" onclick="closeRatingModal()">&times;</span>
+      <h2>⭐ Rate Product</h2>
+      <input type="hidden" id="rating-product-id">
+
+      <div class="star-rating" style="font-size:2rem; margin:1rem 0; cursor:pointer; color:#fbbf24;">
+        <span onclick="setRating(1)">★</span>
+        <span onclick="setRating(2)">★</span>
+        <span onclick="setRating(3)">★</span>
+        <span onclick="setRating(4)">★</span>
+        <span onclick="setRating(5)">★</span>
+      </div>
+      <input type="hidden" id="selected-rating" value="5">
+
+      <button class="btn-primary" onclick="submitRating()" style="width:100%;">Submit Rating</button>
+    </div>
+  </div>
+
+  <footer>
+    <div class="container footer-content">
+      <div class="footer-brand">
+        <h2>Ajay Fruit Mart</h2>
+        <p>Premium quality, delivered fresh.</p>
+      </div>
+      <div class="footer-links">
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+        <a href="#" onclick="openFeedbackModal()" style="color:var(--primary-color);">💬 Give Feedback</a>
+        <a id="admin-link" href="admin.html"
+          style="color:#64748b; font-size: 0.8rem; margin-left: 10px; display: none;">🔒 Admin</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- FEEDBACK MODAL -->
+  <div id="feedback-modal" class="modal hidden">
+    <div class="modal-content glass-card" style="max-width: 400px; text-align: center;">
+      <div class="modal-header">
+        <h2>We Value Your Feedback</h2>
+        <span class="close-modal" onclick="closeFeedbackModal()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p style="color:#ccc; margin-bottom:1.5rem;">Help us improve your experience.</p>
+
+        <div class="star-rating"
+          style="justify-content:center; margin-bottom:1.5rem; font-size:2rem; cursor:pointer; color:#fbbf24;">
+          <span onclick="setFeedbackRating(1)">★</span>
+          <span onclick="setFeedbackRating(2)">★</span>
+          <span onclick="setFeedbackRating(3)">★</span>
+          <span onclick="setFeedbackRating(4)">★</span>
+          <span onclick="setFeedbackRating(5)">★</span>
+        </div>
+        <input type="hidden" id="feedback-rating" value="5">
+
+        <textarea id="feedback-comment" placeholder="Your thoughts (optional)..."
+          style="width:100%; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; padding:10px; border-radius:8px; height:80px; resize:none;"></textarea>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- TRACKING MODAL MOVED OUTSIDE -->
+  <div id="tracking-modal" class="modal hidden" style="z-index: 10000; display: none;">
+    <div class="modal-content glass-card"
+      style="width: 90%; max-width: 900px; height: 85vh; display: flex; flex-direction: column; padding: 0;">
+      <div class="modal-header"
+        style="padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; background: #1a1a1a;">
+        <div>
+          <h2 style="margin:0; font-size: 1.3rem;">🚚 Live Delivery Tracking</h2>
+          <p style="margin:0; color: #aaa; font-size: 0.9rem;">Order #<span id="track-order-id"></span></p>
+        </div>
+        <span onclick="closeTrackingModal()" style="cursor: pointer; font-size: 2rem;">&times;</span>
+      </div>
+
+      <!-- Delivery Person Info -->
+      <div id="delivery-person-info"
+        style="padding: 1rem; background: #1a1a1a; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <!-- Dynamically populated by JS -->
+      </div>
+
+      <div style="flex: 1; position: relative; width: 100%; height: 100%;">
+        <div id="map" style="width: 100%; height: 100%; background: #222;"></div>
+
+        <!-- Enhanced Status Card -->
+        <div
+          style="position: absolute; bottom: 20px; left: 20px; right: 20px; background: rgba(0,0,0,0.9); backdrop-filter: blur(15px); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(255,255,255,0.15); z-index: 1000; box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
+
+          <!-- Progress Bar -->
+          <div
+            style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; margin-bottom: 1rem; overflow: hidden;">
+            <div id="track-progress-bar"
+              style="height: 100%; width: 0%; background: linear-gradient(90deg, #10b981, #059669); transition: width 0.3s;">
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
+              <div
+                style="background: linear-gradient(135deg, #10b981, #059669); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);">
+                🛵</div>
+              <div style="flex: 1;">
+                <h4 style="margin:0; color: white; font-size: 1rem; font-weight: 600;" id="track-status-text">On the way
+                </h4>
+                <p style="margin:0; color: #10b981; font-size: 0.85rem; margin-top: 0.25rem;" id="track-timestamp">Just
+                  now</p>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 2rem; align-items: center;">
+              <div style="text-align: center;">
+                <h3 style="margin:0; color: #10b981; font-size: 1.5rem; font-weight: 700;" id="track-distance">0 km</h3>
+                <p style="margin:0; color: #888; font-size: 0.75rem; margin-top: 0.25rem;">Distance</p>
+              </div>
+              <div style="text-align: center;">
+                <h3 style="margin:0; color: var(--primary-color); font-size: 1.5rem; font-weight: 700;" id="track-eta">
+                  15 mins</h3>
+                <p style="margin:0; color: #888; font-size: 0.75rem; margin-top: 0.25rem;">ETA</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global UI Elements -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- CRITICAL: Overlay hidden inline to prevent click blocking -->
+  <div id="modal-overlay" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <h2 id="modal-title" class="modal-title"></h2>
+      <div id="modal-body" class="modal-body"></div>
+      <div id="modal-actions" class="modal-actions"></div>
+    </div>
+  </div>
+
+  <!-- FLOATING OFFER BUTTON (Fail-safe) -->
+  <a href="javascript:applyCoupon('WELCOME50')"
+    style="position: fixed; bottom: 80px; right: 20px; z-index: 9999; background: #e11d48; color: white; padding: 12px 25px; border-radius: 50px; font-weight: bold; box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4); cursor: pointer; display: flex; align-items: center; gap: 8px; text-decoration: none;">
+    <span>🎁</span> Get ₹50 OFF
+  </a>
+
+  <!-- AI CHAT WIDGET -->
+  <div class="ai-chat-btn" onclick="toggleAIChat()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+    </svg>
+  </div>
+
+  <div id="ai-chat-window" class="ai-chat-window">
+    <div class="chat-header">
+      <div class="chat-header-info">
+        <div class="avatar">🍎</div>
+        <div>
+          <h3>Ajay AI</h3>
+          <div class="status">Online Help</div>
+        </div>
+      </div>
+      <span onclick="toggleAIChat()" style="cursor:pointer; font-size: 1.8rem; color: var(--text-muted);">&times;</span>
+    </div>
+
+    <div id="chat-messages" class="chat-messages">
+      <div class="message ai">👋 Namaste! I'm Ajay, your personal fruit expert. How can I delight you today? 🍎</div>
+    </div>
+
+    <div id="chat-quick-actions" class="chat-quick-actions">
+      <button class="quick-action-btn" onclick="aiQuickQuery('Cancel Order ❌')">Cancel Order</button>
+      <button class="quick-action-btn" onclick="aiQuickQuery('Refund Policy 💰')">Refund Policy</button>
+      <button class="quick-action-btn" onclick="aiQuickQuery('Manage my Refund 💸')">Manage Refund</button>
+      <button class="quick-action-btn" onclick="aiQuickQuery('Latest Prices 🏷️')">Check Prices</button>
+    </div>
+
+    <div id="typing-indicator" class="typing-indicator">Ajay is typing...</div>
+    <form class="chat-input-area" onsubmit="sendAIMessage(event)">
+      <input type="text" id="chat-input" class="chat-input" placeholder="Type your query..." autocomplete="off">
+      <button type="submit" class="chat-send-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </form>
+  </div>
+
+  <script src="products.js"></script>
+  <script src="app.js?v=3.1"></script>
+  <script src="otp-system.js"></script>
+  <script src="tracking.js?v=1.1"></script>
+  <script>
+    // Secret Admin Access: Click logo 5 times to reveal admin link
+    let logoClicks = 0;
+    const logo = document.querySelector('.logo');
+    if (logo) {
+      logo.addEventListener('click', (e) => {
+        // Only count if it's the logo itself
+        logoClicks++;
+        if (logoClicks >= 5) {
+          const adminLink = document.getElementById('admin-link');
+          if (adminLink) {
+            adminLink.style.display = 'inline-block';
+            console.log("Admin access revealed 🔒");
+          }
+        }
+        // Reset after 3 seconds of inactivity
+        clearTimeout(window.logoTimer);
+        window.logoTimer = setTimeout(() => logoClicks = 0, 3000);
+      });
+    }
+  </script>
+</body>
+
+</html>

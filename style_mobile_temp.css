@@ -1,0 +1,228 @@
+/* Mobile Optimizations */
+
+@media (max-width: 768px) {
+
+    /* --- GLOBAL LAYOUT TWEAKS --- */
+    .container {
+        padding: 0 1rem;
+    }
+
+    h1 {
+        font-size: 2.2rem !important;
+    }
+
+    h2 {
+        font-size: 1.8rem !important;
+    }
+
+    /* --- HEADER & NAVIGATION --- */
+    .glass-header {
+        top: 0;
+        width: 100%;
+        border-radius: 0;
+        padding: 0.8rem 1rem;
+        justify-content: space-between;
+    }
+
+    .glass-header.scrolled {
+        top: 0;
+        width: 100%;
+        padding: 0.6rem 1rem;
+    }
+
+    .nav-links {
+        display: none;
+        /* Hidden by default on mobile */
+        position: fixed;
+        top: 60px;
+        left: 0;
+        width: 100%;
+        background: rgba(10, 10, 10, 0.98);
+        backdrop-filter: blur(20px);
+        flex-direction: column;
+        padding: 2rem;
+        align-items: center;
+        gap: 1.5rem;
+        height: 100vh;
+        z-index: 999;
+    }
+
+    .nav-links.active {
+        display: flex;
+    }
+
+    .nav-actions {
+        gap: 0.5rem;
+    }
+
+    .search-bar {
+        display: none;
+        /* Hide standard search, show only icon trigger if needed or adjust */
+    }
+
+    /* Use a mobile-specific search triggered by icon or separate field */
+
+    .mobile-toggle {
+        display: block;
+        background: none;
+        border: none;
+        cursor: pointer;
+        z-index: 1001;
+    }
+
+    .mobile-toggle .bar {
+        display: block;
+        width: 25px;
+        height: 2px;
+        margin: 5px auto;
+        background-color: var(--text-light);
+        transition: all 0.3s ease;
+    }
+
+    .mobile-toggle.open .bar:nth-child(1) {
+        transform: translateY(7px) rotate(45deg);
+    }
+
+    .mobile-toggle.open .bar:nth-child(2) {
+        opacity: 0;
+    }
+
+    .mobile-toggle.open .bar:nth-child(3) {
+        transform: translateY(-7px) rotate(-45deg);
+    }
+
+    /* --- HERO SECTION --- */
+    .hero-content h1 {
+        font-size: 2.5rem;
+        /* Larger for impact */
+        line-height: 1.2;
+    }
+
+    .hero-buttons {
+        flex-direction: column;
+        width: 100%;
+        gap: 1rem;
+    }
+
+    .hero-buttons .btn {
+        width: 100%;
+        text-align: center;
+    }
+
+    /* --- PRODUCT GRID --- */
+    .product-grid {
+        grid-template-columns: repeat(2, 1fr);
+        /* 2 columns for better density */
+        gap: 0.8rem;
+    }
+
+    .product-card {
+        padding: 0.8rem;
+        /* Compact padding */
+    }
+
+    .card-image img {
+        height: 140px;
+        /* Reduced specific height */
+    }
+
+    .card-info h3 {
+        font-size: 0.9rem;
+        /* Smaller title */
+        margin-bottom: 0.2rem;
+    }
+
+    .card-info .price {
+        font-size: 1rem !important;
+    }
+
+    .btn-add {
+        padding: 0.6rem;
+        font-size: 0.85rem;
+    }
+
+    /* --- BANNERS --- */
+    .offer-banner {
+        min-width: 280px;
+        /* Smaller width for mobile swipe */
+        height: 160px;
+    }
+
+    /* --- CART & MODALS --- */
+    .modal-content {
+        width: 95%;
+        margin: 10% auto;
+        padding: 1.5rem;
+    }
+
+    .cart-grid {
+        grid-template-columns: 1fr;
+        /* Stack cart items */
+    }
+
+    .cart-summary {
+        position: static;
+        /* No sticky on mobile usually better or fixed bottom */
+        margin-top: 2rem;
+    }
+
+    /* Sticky Bottom Cart Summary (Optional "Swiggy" style) */
+    /* 
+    .cart-summary {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: #1a1a1a;
+        z-index: 999;
+        border-radius: 20px 20px 0 0;
+        border-top: 1px solid rgba(255,255,255,0.1);
+        padding: 1rem;
+    } 
+    */
+
+    /* --- PROFILE --- */
+    .profile-header {
+        flex-direction: column;
+        text-align: center;
+        padding: 1.5rem !important;
+    }
+
+    .profile-header>div:last-child {
+        margin-left: 0 !important;
+        width: 100%;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    /* --- PDP (Product Details) --- */
+    .pdp-grid {
+        grid-template-columns: 1fr !important;
+        gap: 2rem !important;
+    }
+
+    .pdp-image img {
+        height: auto !important;
+        max-height: 300px;
+    }
+
+    /* --- TOAST --- */
+    #toast-container {
+        bottom: 20px;
+        right: 50%;
+        transform: translateX(50%);
+        width: 90%;
+    }
+}
+
+/* Extra Small Devices */
+@media (max-width: 400px) {
+    .product-grid {
+        grid-template-columns: 1fr;
+        /* Single column for very small */
+    }
+
+    h1 {
+        font-size: 1.8rem !important;
+    }
+}

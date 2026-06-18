@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>OTP System Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+
+        .test-result {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid;
+        }
+
+        .success {
+            background: #1a3a1a;
+            border-color: #10b981;
+        }
+
+        .error {
+            background: #3a1a1a;
+            border-color: #ef4444;
+        }
+
+        .info {
+            background: #1a2a3a;
+            border-color: #3b82f6;
+        }
+
+        button {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #059669;
+        }
+
+        #output {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🧪 OTP System Diagnostic Test</h1>
+
+    <div class="test-result info">
+        <strong>Test Instructions:</strong><br>
+        1. Click "Run All Tests" button<br>
+        2. Check if all tests pass<br>
+        3. If any test fails, screenshot and share
+    </div>
+
+    <button onclick="runAllTests()">🚀 Run All Tests</button>
+    <button onclick="testOTPEndpoint()">📱 Test OTP Endpoint</button>
+    <button onclick="clearOutput()">🗑️ Clear</button>
+
+    <div id="output"></div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:5000';
+        const output = document.getElementById('output');
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = message;
+            output.appendChild(div);
+        }
+
+        function clearOutput() {
+            output.innerHTML = '';
+        }
+
+        async function runAllTests() {
+            clearOutput();
+            log('<h3>🔍 Starting Diagnostic Tests...</h3>', 'info');
+
+            // Test 1: Check if otp-system.js is loaded
+            log('<strong>Test 1:</strong> Checking if OTP system is loaded...', 'info');
+            if (typeof window.showOTPVerification === 'function') {
+                log('✅ OTP system functions are loaded!', 'success');
+            } else {
+                log('❌ OTP system NOT loaded! Check if otp-system.js is included in index.html', 'error');
+            }
+
+            // Test 2: Check backend OTP endpoint
+            log('<strong>Test 2:</strong> Testing backend /api/send-otp endpoint...', 'info');
+            try {
+                const response = await fetch(`${API_BASE}/api/send-otp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: 'Test User',
+                        phone: '9876543210',
+                        email: 'test@test.com',
+                        address: 'Test Address'
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    log(`✅ Backend OTP endpoint working!<br>OTP: ${result.otp || 'Hidden (SMS sent)'}`, 'success');
+                } else {
+                    log(`❌ Backend returned error: ${result.message}`, 'error');
+                }
+            } catch (e) {
+                log(`❌ Failed to connect to backend: ${e.message}`, 'error');
+            }
+
+            // Test 3: Check if processSignUp is overridden
+            log('<strong>Test 3:</strong> Checking if signup function is modified...', 'info');
+            const signupFunc = window.processSignUp.toString();
+            if (signupFunc.includes('send-otp')) {
+                log('✅ Signup function is using OTP system!', 'success');
+            } else {
+                log('❌ Signup function NOT using OTP! Old function still active.', 'error');
+            }
+
+            log('<h3>✅ Diagnostic Complete!</h3>', 'success');
+        }
+
+        async function testOTPEndpoint() {
+            clearOutput();
+            log('<h3>📱 Testing OTP Send...</h3>', 'info');
+
+            const phone = prompt('Enter 10-digit phone number to test:');
+            if (!phone || phone.length !== 10) {
+                log('❌ Invalid phone number!', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/send-otp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: 'Test User',
+                        phone: phone,
+                        email: 'test@test.com',
+                        address: 'Test Address'
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    log(`✅ OTP Sent Successfully!<br>
+                        Phone: ${phone}<br>
+                        OTP: <strong>${result.otp || 'Check your SMS'}</strong><br>
+                        SMS Sent: ${result.sms_sent ? 'Yes ✅' : 'No (Console only)'}`, 'success');
+
+                    if (result.otp) {
+                        log('💡 OTP is shown because SMS service is not configured. Check terminal for OTP.', 'info');
+                    }
+                } else {
+                    log(`❌ Failed: ${result.message}`, 'error');
+                }
+            } catch (e) {
+                log(`❌ Error: ${e.message}`, 'error');
+            }
+        }
+
+        // Auto-run on load
+        setTimeout(runAllTests, 500);
+    </script>
+</body>
+
+</html>
