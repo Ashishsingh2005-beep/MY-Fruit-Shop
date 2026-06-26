@@ -865,7 +865,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!prodRes.ok) throw new Error('Failed to fetch products');
 
-            state.products = await prodRes.json();
+            const productsData = await prodRes.json();
+            state.products = Array.isArray(productsData) ? productsData : (productsData.products || []);
             try { state.settings = await setRes.json(); } catch (e) { }
 
             router();

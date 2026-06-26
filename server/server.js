@@ -38,6 +38,7 @@ app.use('/api/products', require('./routes/products'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/ai', require('./routes/ai'));
+app.use('/api', require('./routes/compat'));
 
 // ─── Health Check ────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
