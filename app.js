@@ -1220,7 +1220,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                         ₹${p.price}
                                     </p>
                                     <button class="btn btn-primary" style="width: 100%; ${!isSunday ? 'opacity: 0.6; cursor: not-allowed;' : ''}" 
-                                        onclick="${isSunday ? `addToCart(${p.id}, ${p.price})` : `alert('This sale price is only applicable on Sunday!')`}">
+                                        onclick="${isSunday ? `addToCart('${p.id}', ${p.price})` : `alert('This sale price is only applicable on Sunday!')`}">
                                         ${isSunday ? 'Add to Cart' : 'Sunday Only'}
                                     </button>
                                 </div>
@@ -1305,8 +1305,8 @@ document.addEventListener('DOMContentLoaded', () => {
         logActivity({ type: 'view_page', details: hash || 'Home' });
 
         if (hash.startsWith('#product/')) {
-            const id = parseInt(hash.split('/')[1]);
-            const product = state.products.find(p => p.id === id);
+            const id = hash.split('/')[1];
+            const product = state.products.find(p => String(p.id) === String(id));
             if (product) {
                 renderProductDetails(product);
                 window.scrollTo(0, 0);
@@ -1477,11 +1477,11 @@ document.addEventListener('DOMContentLoaded', () => {
                                         <!-- Decrease by 0.5 or 1 based on unit? Let's use 0.5 for generic or 1 -->
                                         <!-- Actually, consistency with grid: -1 might be too much for 0.5kg items -->
                                         <!-- Let's iterate by 0.1 or 0.25 to allow fine control in cart -->
-                                        <button onclick="updateCartItemQty(${item.id}, -0.1)" style="color: white; font-weight: bold; background: none; border: none; cursor: pointer;">-</button>
+                                        <button onclick="updateCartItemQty('${item.id}', -0.1)" style="color: white; font-weight: bold; background: none; border: none; cursor: pointer;">-</button>
                                         <span style="font-weight: bold; min-width: 40px; text-align: center;">${item.qty || 1} ${getPriceUnit(item) === 'Kg' ? 'kg' : ''}</span>
-                                        <button onclick="updateCartItemQty(${item.id}, 0.1)" style="color: white; font-weight: bold; background: none; border: none; cursor: pointer;">+</button>
+                                        <button onclick="updateCartItemQty('${item.id}', 0.1)" style="color: white; font-weight: bold; background: none; border: none; cursor: pointer;">+</button>
                                     </div>
-                                    <button onclick="removeAllFromCart(${item.id})" style="color: #FF6B6B; font-weight: 500; margin-left: 10px; background: none; border: none; cursor: pointer;">Remove</button>
+                                    <button onclick="removeAllFromCart('${item.id}')" style="color: #FF6B6B; font-weight: 500; margin-left: 10px; background: none; border: none; cursor: pointer;">Remove</button>
                                 </div>
                             `).join('')}
                         </div>
@@ -1724,7 +1724,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // New Helper to update quantity directly from Cart
     window.updateCartItemQty = function (id, delta) {
-        const item = state.cart.find(i => i.id === id);
+        const item = state.cart.find(i => String(i.id) === String(id));
         if (item) {
             let newQty = (item.qty || 1) + delta;
             if (newQty <= 0) {
@@ -1741,7 +1741,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.addToCart = function (productId, targetPrice = null) {
-        const product = state.products.find(p => p.id === productId);
+        const product = state.products.find(p => String(p.id) === String(productId));
         if (product) {
             if (product.in_stock === false) {
                 showToast("This product is out of stock", "📦");
@@ -1756,7 +1756,7 @@ document.addEventListener('DOMContentLoaded', () => {
             logActivity({ type: 'add_to_cart', details: `${product.name} (x${qty})` });
 
             // Check if item exists in cart
-            const existingItem = state.cart.find(item => item.id === productId);
+            const existingItem = state.cart.find(item => String(item.id) === String(productId));
 
             if (existingItem) {
                 // Update existing item quantity
@@ -1774,7 +1774,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast(`Added ${qty} ${getPriceUnit(product)} ${product.name}`, "🍎");
 
             // Temporary feedback
-            const btn = document.querySelector(`button[onclick *="addToCart(${productId})"]`);
+            const btn = document.querySelector(`button[onclick*="${productId}"]`);
             if (btn) {
                 const oldText = btn.textContent;
                 btn.textContent = `Added +${qty}`;
@@ -1788,7 +1788,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // NEW: Remove ALL items of a specific ID
     window.removeAllFromCart = function (id) {
-        state.cart = state.cart.filter(item => item.id !== id);
+        state.cart = state.cart.filter(item => String(item.id) !== String(id));
         updateCartUI();
         if (window.location.hash === '#cart') renderCart();
         showToast("Item removed from cart", "🗑️");
@@ -2146,7 +2146,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderWishlist() {
-        const wishlistItems = state.products.filter(p => state.wishlist.includes(p.id));
+        const wishlistItems = state.products.filter(p => state.wishlist.some(item => String(item) === String(p.id)));
         const mainContent = document.getElementById('app-main');
         if (!mainContent) return;
 
@@ -3005,7 +3005,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderProductGrid(products) {
         if (products.length === 0) return '<p style="text-align: center; grid-column: 1/-1; padding: 2rem; color: var(--text-gray);">No fruits found matching your search.</p>';
         return products.map((product, index) => {
-            const isWishlisted = state.wishlist.includes(product.id);
+            const isWishlisted = state.wishlist.some(item => String(item) === String(product.id));
             const unit = getPriceUnit(product);
             const delay = (index % 8) * 0.1; // Stagger effect
             const inStock = product.in_stock !== false;
@@ -3033,7 +3033,7 @@ document.addEventListener('DOMContentLoaded', () => {
                  style="transition-delay: ${delay}s; ${!inStock ? 'filter: grayscale(0.5);' : ''}" 
                  onclick="window.location.hash='#product/${product.id}'">
                 
-                <div class="wishlist-btn-card ${isWishlisted ? 'active' : ''}" onclick="event.stopPropagation(); toggleWishlist(${product.id})">
+                <div class="wishlist-btn-card ${isWishlisted ? 'active' : ''}" onclick="event.stopPropagation(); toggleWishlist('${product.id}')">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                 </div>
 
@@ -3064,15 +3064,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     ${inStock ? `
                     <div class="qty-selector" onclick="event.stopPropagation()">
-                        <button class="qty-btn" onclick="changeQty(${product.id}, -1)">-</button>
+                        <button class="qty-btn" onclick="changeQty('${product.id}', -1)">-</button>
                         <input type="number" class="qty-input" id="qty-${product.id}" value="1" min="0.1" step="0.1" onclick="event.stopPropagation()">
-                        <button class="qty-btn" onclick="changeQty(${product.id}, 1)">+</button>
+                        <button class="qty-btn" onclick="changeQty('${product.id}', 1)">+</button>
                     </div>
                     ` : ''}
 
                     <button class="btn-add" 
                         ${!inStock ? 'style="background:#4b5563; cursor:not-allowed;" disabled' : ''} 
-                        onclick="event.stopPropagation(); ${inStock ? `addToCart(${product.id}, ${product.price})` : ''}">
+                        onclick="event.stopPropagation(); ${inStock ? `addToCart('${product.id}', ${product.price})` : ''}">
                         ${inStock ? 'Add to Cart' : 'Unavailable'}
                     </button>
                     ${product.category === 'Seasonal' ? '<span class="season-tag">Seasonal</span>' : ''}
@@ -3169,7 +3169,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.toggleWishlist = function (id) {
-        const index = state.wishlist.indexOf(id);
+        const index = state.wishlist.findIndex(item => String(item) === String(id));
         if (index === -1) {
             state.wishlist.push(id);
         } else {
@@ -3230,14 +3230,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="pdp-actions" style="display: flex; gap: 1rem; align-items: center;">
                             ${product.in_stock !== false ? `
                             <div class="qty-selector" style="margin-bottom:0; flex: 0.4;">
-                                <button class="qty-btn" onclick="changeQty(${product.id}, -1)">-</button>
+                                <button class="qty-btn" onclick="changeQty('${product.id}', -1)">-</button>
                                 <input type="number" class="qty-input" id="qty-${product.id}" value="1" min="0.1" step="0.1">
-                                <button class="qty-btn" onclick="changeQty(${product.id}, 1)">+</button>
+                                <button class="qty-btn" onclick="changeQty('${product.id}', 1)">+</button>
                             </div>
                             ` : ''}
                             <button class="btn btn-primary" 
                                 ${product.in_stock === false ? 'style="background:#4b5563; cursor:not-allowed;" disabled' : ''} 
-                                onclick="${product.in_stock === false ? '' : `addToCart(${product.id})`}" 
+                                onclick="${product.in_stock === false ? '' : `addToCart('${product.id}')`}" 
                                 style="flex: 1; padding: 1rem;">
                                 ${product.in_stock === false ? 'Out of Stock' : 'Add to Cart'}
                             </button>
@@ -3518,9 +3518,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add bundle to cart
     window.addBundleToCart = function (productIds) {
         productIds.forEach(id => {
-            const product = state.products.find(p => p.id === id);
+            const product = state.products.find(p => String(p.id) === String(id));
             if (product && product.in_stock !== false) {
-                const existingItem = state.cart.find(item => item.id === id);
+                const existingItem = state.cart.find(item => String(item.id) === String(id));
                 if (existingItem) {
                     existingItem.qty = (existingItem.qty || 1) + 1;
                 } else {
