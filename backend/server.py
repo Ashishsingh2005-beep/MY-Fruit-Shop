@@ -28,10 +28,10 @@ try:
         generate_inventory_alerts
     )
     ML_AVAILABLE = True
-    print("[ML ENGINE] ✅ Machine Learning Engine loaded successfully!")
+    print("[ML ENGINE] [OK] Machine Learning Engine loaded successfully!")
 except ImportError as e:
     ML_AVAILABLE = False
-    print(f"[ML ENGINE] ⚠️ ML Engine not available: {e}")
+    print(f"[ML ENGINE] [WARNING] ML Engine not available: {e}")
 
 # ─── SSE (Server-Sent Events) for Real-time Notifications ───
 sse_clients = []
@@ -149,7 +149,7 @@ def load_data():
 logging.basicConfig(filename=os.path.join(DATA_DIR, 'activity.log'), level=logging.INFO, 
                     format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
-app = Flask(__name__, static_folder='.', static_url_path='')
+app = Flask(__name__, static_folder=ROOT_DIR, static_url_path='')
 CORS(app) # Enable CORS for all routes
 
 # Log every request

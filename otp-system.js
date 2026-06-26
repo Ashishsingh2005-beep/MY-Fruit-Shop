@@ -33,7 +33,7 @@ window.processSignUp = async function () {
             window.tempUserData = { name, email, phone, address };
 
             // Show OTP verification screen
-            showOTPVerification(phone, result.otp); // result.otp only for development
+            showOTPVerification(phone, result.otp || result.debug_otp); // Support both otp and debug_otp for dev mode
             showToast("OTP sent to your phone!", "📱");
         } else {
             showToast(result.message || "Failed to send OTP", "❌");
@@ -153,8 +153,8 @@ window.resendOTP = async function () {
             showToast("OTP resent successfully!", "📱");
             // Update dev OTP display if exists
             const devOTPDisplay = document.querySelector('#otp-form p[style*="fbbf24"]');
-            if (devOTPDisplay && result.otp) {
-                devOTPDisplay.textContent = `DEV MODE: Your OTP is ${result.otp}`;
+            if (devOTPDisplay && (result.otp || result.debug_otp)) {
+                devOTPDisplay.textContent = `DEV MODE: Your OTP is ${result.otp || result.debug_otp}`;
             }
         }
     } catch (e) {
