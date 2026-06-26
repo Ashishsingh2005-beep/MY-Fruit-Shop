@@ -28,9 +28,9 @@ app.use('/api/', limiter);
 const otpLimiter = rateLimit({ windowMs: 5 * 60 * 1000, max: 5, message: 'Too many OTP requests' });
 app.use('/api/auth/send-otp', otpLimiter);
 
-// ─── Static Files (Serving React Frontend) ───────────────────
+// ─── Static Files (Serving original HTML/CSS) ───────────────
 const path = require('path');
-app.use(express.static(path.join(__dirname, '../client/dist')));
+app.use(express.static(path.join(__dirname, '../')));
 
 // ─── Routes ─────────────────────────────────────────────────
 app.use('/api/auth', require('./routes/auth'));
@@ -42,11 +42,6 @@ app.use('/api/ai', require('./routes/ai'));
 // ─── Health Check ────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.json({ success: true, status: 'online', timestamp: new Date().toISOString() });
-});
-
-// Serve index.html for all other routes (React Router fallback)
-app.get('/*splat', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
 
 // ─── Seed Products (if DB empty) ─────────────────────────────
