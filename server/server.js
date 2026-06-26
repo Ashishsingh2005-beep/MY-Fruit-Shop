@@ -45,7 +45,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Serve index.html for all other routes (React Router fallback)
-app.get('*', (req, res) => {
+app.get('/*splat', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
 
