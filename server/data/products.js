@@ -2,13 +2,13 @@ const products = [
   // ─── DRAGON FRUITS ───────────────────────────────
   { name: "Dragon Fruit (White Flesh)", price: 120, originalPrice: 150, category: "Fruits", subCategory: "Dragon", color: "#FF1493", emoji: "🐉", description: "Exotic white-fleshed dragon fruit. Mildly sweet & rich in antioxidants.", rating: 4.8, isFeatured: true, isHot: true, tags: ["exotic", "antioxidant", "vitamin-c"] },
   { name: "Dragon Fruit (Red Flesh)", price: 150, originalPrice: 196, category: "Fruits", subCategory: "Dragon", color: "#C71585", emoji: "🐲", description: "Premium red-fleshed dragon fruit. Rich in antioxidants.", rating: 4.9, isFeatured: true, tags: ["exotic", "premium"] },
-  
+
   // ─── MANGOES ─────────────────────────────────────
   { name: "Mango Dasheri (Malihabad)", price: 100, originalPrice: 127, category: "Fruits", color: "#FFD700", emoji: "🥭", description: "Famous Dasheri mangoes from Malihabad. Sweet and aromatic.", rating: 4.9, isFeatured: true, isHot: true, tags: ["mango", "summer", "sweet"] },
   { name: "Mango Langra (Banaras)", price: 80, originalPrice: 108, category: "Fruits", color: "#9ACD32", emoji: "🥭", description: "Green-skinned Langra mangoes with unique tangy-sweet flavor.", rating: 4.8, tags: ["mango", "summer"] },
   { name: "Mango Chausa", price: 120, originalPrice: 145, category: "Fruits", color: "#FFC20E", emoji: "🥭", description: "Sweetest sucking mango, golden yellow Chausa.", rating: 4.9, isHot: true, tags: ["mango", "summer", "premium"] },
   { name: "Mango Safeda (Banganapalli)", price: 90, originalPrice: 108, category: "Fruits", color: "#F4C430", emoji: "🥭", description: "Early season Safeda mangoes. Large and pulp-filled.", rating: 4.7, tags: ["mango"] },
-  
+
   // ─── COMMON FRUITS ────────────────────────────────
   { name: "Kashmiri Apple (Kinnaur)", price: 180, originalPrice: 243, category: "Fruits", color: "#D32F2F", emoji: "🍎", description: "Crispy and sweet red apples from Kinnaur/Kashmir.", rating: 4.8, isFeatured: true, tags: ["apple", "healthy"] },
   { name: "Banana (Chitti)", price: 60, originalPrice: 73, category: "Fruits", color: "#FFE135", emoji: "🍌", description: "Sweet spotted bananas. High energy, potassium-rich.", rating: 4.5, tags: ["banana", "energy"] },

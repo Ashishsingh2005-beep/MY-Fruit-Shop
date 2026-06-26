@@ -11,33 +11,140 @@
   --radius: 12px;
   --radius-lg: 20px;
 }
-* { margin: 0; padding: 0; box-sizing: border-box; }
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 body {
   font-family: 'Outfit', sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.5;
 }
-.container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
 .btn {
-  padding: 0.75rem 1.5rem; border-radius: 50px; font-weight: 600; cursor: pointer; border: none; transition: 0.3s;
+  padding: 0.75rem 1.5rem;
+  border-radius: 50px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: 0.3s;
 }
-.btn-primary { background: var(--primary); color: #000; }
-.btn-primary:hover { background: var(--primary-dark); }
-.btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
-.btn-outline:hover { background: rgba(212,175,55,0.1); }
-.card { background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); }
+
+.btn-primary {
+  background: var(--primary);
+  color: #000;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+}
+
+.btn-outline:hover {
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
 .input {
-  width: 100%; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border);
-  background: rgba(255,255,255,0.05); color: var(--text);
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
 }
-.hero { padding: 8rem 0; min-height: 80vh; display: flex; align-items: center; position: relative; }
-h1 { font-size: 4rem; line-height: 1.1; margin-bottom: 1rem; }
-.gradient-text { background: linear-gradient(135deg, #d4af37, #fff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.5rem; }
-.product-card { background: var(--bg-card); border-radius: var(--radius); padding: 1rem; text-align: center; border: 1px solid var(--border); cursor: pointer; transition: 0.3s; }
-.product-card:hover { border-color: var(--primary); transform: translateY(-5px); }
-.emoji-bg { height: 150px; display: flex; align-items: center; justify-content: center; font-size: 5rem; border-radius: var(--radius); margin-bottom: 1rem; }
-.card-price { color: var(--primary); font-size: 1.25rem; font-weight: bold; }
-.navbar { display: flex; justify-content: space-between; padding: 1.5rem; background: rgba(10,10,10,0.8); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); }
-.nav-links a { color: var(--text); text-decoration: none; margin-left: 1.5rem; }
+
+.hero {
+  padding: 8rem 0;
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+h1 {
+  font-size: 4rem;
+  line-height: 1.1;
+  margin-bottom: 1rem;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #d4af37, #fff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.grid-auto {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.product-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 1rem;
+  text-align: center;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.product-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-5px);
+}
+
+.emoji-bg {
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 5rem;
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+}
+
+.card-price {
+  color: var(--primary);
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 1.5rem;
+  background: rgba(10, 10, 10, 0.8);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-links a {
+  color: var(--text);
+  text-decoration: none;
+  margin-left: 1.5rem;
+}

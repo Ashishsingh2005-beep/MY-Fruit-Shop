@@ -28,9 +28,9 @@ app.use('/api/', limiter);
 const otpLimiter = rateLimit({ windowMs: 5 * 60 * 1000, max: 5, message: 'Too many OTP requests' });
 app.use('/api/auth/send-otp', otpLimiter);
 
-// ─── Static Files (Serving original HTML/CSS) ───────────────
+// ─── Static Files (Serving React Frontend) ───────────────────
 const path = require('path');
-app.use(express.static(path.join(__dirname, '../')));
+app.use(express.static(path.join(__dirname, '../client/dist')));
 
 // ─── Routes ─────────────────────────────────────────────────
 app.use('/api/auth', require('./routes/auth'));
@@ -42,6 +42,11 @@ app.use('/api/ai', require('./routes/ai'));
 // ─── Health Check ────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.json({ success: true, status: 'online', timestamp: new Date().toISOString() });
+});
+
+// Serve index.html for all other routes (React Router fallback)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
 
 // ─── Seed Products (if DB empty) ─────────────────────────────
@@ -66,9 +71,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ─── Start Server ────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Ajay Fruit Mart Server running on http://localhost:${PORT}`);
   console.log(`🍎 Open this link in browser to see your website!`);
 });
+

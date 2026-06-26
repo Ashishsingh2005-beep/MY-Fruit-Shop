@@ -27,6 +27,12 @@ export default function Profile() {
     }
   }, [isLoggedIn]);
 
+  useEffect(() => {
+    if (user) {
+      setForm({ name: user.name || '', email: user.email || '', address: user.address || '' });
+    }
+  }, [user]);
+
   const loadOrders = async () => {
     setOrdersLoading(true);
     try {

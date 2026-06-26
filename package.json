@@ -4,7 +4,7 @@
   "description": "Full-Stack MERN Fruit Shop - Final Year Project",
   "scripts": {
     "start": "node server/server.js",
-    "build": "cd server && npm install",
+    "build": "cd client && npm install && npm run build && cd ../server && npm install",
     "server": "cd server && npm run dev",
     "client": "cd client && npm run dev",
     "dev": "start cmd /k \"cd server && npm run dev\" && start cmd /k \"cd client && npm run dev\"",
