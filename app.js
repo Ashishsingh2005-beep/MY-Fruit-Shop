@@ -3600,65 +3600,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    window.addToCart = function (productId, targetPrice = null) {
-        const product = state.products.find(p => p.id === productId);
-        if (product) {
-            if (product.in_stock === false) {
-                showToast("This product is out of stock", "📦");
-                return;
-            }
 
-            // Get Quantity
-            const qtyInput = document.getElementById(`qty-${productId}`);
-            const qty = qtyInput ? parseInt(qtyInput.value) : 1;
-
-            logActivity({ type: 'add_to_cart', details: `${product.name} (x${qty})` });
-
-            // Add multiple copies to cart array
-            const finalProduct = targetPrice ? { ...product, price: targetPrice } : { ...product };
-            for (let i = 0; i < qty; i++) {
-                state.cart.push(finalProduct);
-            }
-
-            updateCartUI();
-            showToast(`Added ${qty} ${product.name} to cart`, "🍎");
-
-            // Temporary feedback
-            const btn = document.querySelector(`button[onclick *= "addToCart(${productId})"]`);
-            if (btn) {
-                const oldText = btn.textContent;
-                btn.textContent = `Added x${qty}`;
-                setTimeout(() => btn.textContent = oldText, 1500);
-            }
-
-            // Reset quantity to 1
-            if (qtyInput) qtyInput.value = 1;
-        }
-    }
-
-    // NEW: Remove ALL items of a specific ID (for grouped view)
-    window.removeAllFromCart = function (id) {
-        state.cart = state.cart.filter(item => item.id !== id);
-        updateCartUI();
-        if (window.location.hash === '#cart') renderCart();
-        showToast("Item removed from cart", "🗑️");
-    }
-
-    // Ensure regular Remove works perfectly too
-    window.removeFromCart = function (index) {
-        state.cart.splice(index, 1);
-        updateCartUI();
-        if (window.location.hash === '#cart') renderCart();
-    }
-
-    function updateCartUI() {
-        cartCount.textContent = state.cart.length;
-        localStorage.setItem('savedCart', JSON.stringify(state.cart)); // Persist Cart
-        cartCount.parentElement.style.transform = 'scale(1.2)';
-        setTimeout(() => {
-            cartCount.parentElement.style.transform = 'scale(1)';
-        }, 200);
-    }
 
     function setupEventListeners() {
         // Check Auth State for UI
@@ -3703,9 +3645,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setupEventListeners();
 
-    // Initialize Routing
-    window.addEventListener('hashchange', router);
-    window.addEventListener('hashchange', router);
+
 
     // --- RECOMMENDATION LOGIC ---
     async function loadRecommendations() {

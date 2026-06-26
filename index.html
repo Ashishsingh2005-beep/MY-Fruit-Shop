@@ -86,7 +86,8 @@
   <div class="video-bg-container">
     <div class="video-overlay"></div>
     <video id="vbg" autoplay loop muted playsinline class="video-bg"
-      style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;">
+      style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;"
+      poster="https://images.unsplash.com/photo-1610832958506-aa56368176cf?q=80&w=2070&auto=format&fit=crop">
       <source
         src="https://assets.mixkit.co/videos/preview/mixkit-fresh-market-fruits-and-vegetables-spread-40432-large.mp4"
         type="video/mp4">
@@ -99,11 +100,20 @@
       window.addEventListener('load', function () {
         var video = document.getElementById('vbg');
         if (video) {
+          // Hide video element on load failure to display the beautiful poster/fallback image
+          video.addEventListener('error', function () {
+            console.log("Video source error captured. Hiding video element.");
+            video.style.display = 'none';
+          }, true);
+
           video.play().catch(function (error) {
             console.log("Autoplay blocked, waiting for click");
             // If prevented, play on first interaction
             document.addEventListener('click', function () {
-              video.play();
+              video.play().catch(function (e) {
+                console.log("Video playback failed after click. Hiding video element.");
+                video.style.display = 'none';
+              });
             }, { once: true });
           });
         }
