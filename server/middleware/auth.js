@@ -6,7 +6,8 @@ exports.protect = async (req, res, next) => {
   if (!token) return res.status(401).json({ success: false, message: 'Not authorized, no token' });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const jwtSecret = process.env.JWT_SECRET || 'ajay_fruit_mart_secret_key_2024_super_secure';
+    const decoded = jwt.verify(token, jwtSecret);
     req.user = await User.findById(decoded.id).select('-__v');
     if (!req.user) return res.status(401).json({ success: false, message: 'User not found' });
     if (req.user.isBanned) return res.status(403).json({ success: false, message: 'Account suspended' });

@@ -11,7 +11,8 @@ const adminProtect = async (req, res, next) => {
   if (!token) return res.status(401).json({ success: false, message: 'Not authorized' });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const jwtSecret = process.env.JWT_SECRET || 'ajay_fruit_mart_secret_key_2024_super_secure';
+    const decoded = jwt.verify(token, jwtSecret);
     if (decoded.role !== 'admin') {
       // Also check password-based admin access
       return res.status(403).json({ success: false, message: 'Admin access required' });
@@ -23,21 +24,25 @@ const adminProtect = async (req, res, next) => {
   }
 };
 
+
 // @route   POST /api/admin/login
 // @desc    Admin login
 // @access  Public
 router.post('/login', async (req, res) => {
   try {
     const { password } = req.body;
-    if (password !== process.env.ADMIN_PASSWORD) {
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    if (password !== adminPassword) {
       return res.status(401).json({ success: false, message: 'Invalid admin password' });
     }
-    const token = jwt.sign({ role: 'admin', id: 'admin' }, process.env.JWT_SECRET, { expiresIn: '24h' });
+    const jwtSecret = process.env.JWT_SECRET || 'ajay_fruit_mart_secret_key_2024_super_secure';
+    const token = jwt.sign({ role: 'admin', id: 'admin' }, jwtSecret, { expiresIn: '24h' });
     res.json({ success: true, token });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
+
 
 // @route   GET /api/admin/stats
 // @desc    Get dashboard statistics

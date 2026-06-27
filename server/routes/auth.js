@@ -94,11 +94,12 @@ router.post('/verify-otp', async (req, res) => {
       return res.status(403).json({ success: false, message: 'Your account has been suspended.' });
     }
 
-    // Generate JWT
+    const jwtSecret = process.env.JWT_SECRET || 'ajay_fruit_mart_secret_key_2024_super_secure';
+    const jwtExpire = process.env.JWT_EXPIRE || '7d';
     const token = jwt.sign(
       { id: user._id, phone: user.phone, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRE }
+      jwtSecret,
+      { expiresIn: jwtExpire }
     );
 
     res.json({
@@ -128,7 +129,8 @@ router.put('/profile', async (req, res) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ success: false, message: 'Not authorized' });
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const jwtSecret = process.env.JWT_SECRET || 'ajay_fruit_mart_secret_key_2024_super_secure';
+    const decoded = jwt.verify(token, jwtSecret);
     const { name, email, address } = req.body;
 
     const user = await User.findByIdAndUpdate(
@@ -151,7 +153,8 @@ router.get('/me', async (req, res) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ success: false, message: 'Not authorized' });
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const jwtSecret = process.env.JWT_SECRET || 'ajay_fruit_mart_secret_key_2024_super_secure';
+    const decoded = jwt.verify(token, jwtSecret);
     const user = await User.findById(decoded.id).select('-__v');
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
