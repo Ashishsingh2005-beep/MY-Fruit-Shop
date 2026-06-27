@@ -1142,32 +1142,45 @@
         }
 
         async function fetchInv() {
-            const res = await fetch(`${API_BASE}/api/products`);
-            const data = await res.json();
-            document.getElementById('inventory-body').innerHTML = data.map(p => {
-                const discount = p.originalPrice ? Math.round((1 - p.price / p.originalPrice) * 100) : 0;
-                return `
-                <tr>
-                    <td><div style="width:20px; height:20px; border-radius:50%; background:${p.color}"></div></td>
-                    <td>${p.name}</td>
-                    <td>${p.category}</td>
-                    <td>
-                        <input type="number" value="${p.price}" id="p-${p.id}" style="width:70px; padding:4px; background:#111; color:white; border:1px solid #333; border-radius:4px;">
-                        <button onclick="updPrice(${p.id})" style="padding:4px 8px; background:var(--success); border:none; color:white; border-radius:4px; cursor:pointer; font-size:0.75rem; margin-left:4px;">💾</button>
-                    </td>
-                    <td>
-                        <input type="number" value="${p.originalPrice || ''}" id="op-${p.id}" placeholder="No discount" style="width:70px; padding:4px; background:#111; color:white; border:1px solid #333; border-radius:4px;">
-                        <button onclick="updOriginalPrice(${p.id})" style="padding:4px 8px; background:var(--info); border:none; color:white; border-radius:4px; cursor:pointer; font-size:0.75rem; margin-left:4px;">💾</button>
-                    </td>
-                    <td>
-                        ${discount > 0 ? `<span style="color:var(--success); font-weight:600;">${discount}% OFF</span>` : '<span style="color:#666;">-</span>'}
-                    </td>
-                    <td>
-                        <button onclick="togStock(${p.id})" style="margin-right:5px; padding:4px 8px; border-radius:4px; font-size:0.75rem;">${p.in_stock ? '✅ Stock' : '❌ Out'}</button>
-                        <button onclick="deleteProduct(${p.id})" style="background:var(--danger); border:none; color:white; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.75rem;">🗑️</button>
-                    </td>
-                </tr>
-            `}).join('');
+            try {
+                const res = await fetch(`${API_BASE}/api/products`);
+                const data = await res.json();
+                const products = data.products || (Array.isArray(data) ? data : []);
+                
+                if (products.length === 0) {
+                    document.getElementById('inventory-body').innerHTML = '<tr><td colspan="7" style="text-align:center;color:#64748b;padding:2rem;">No products found in database.</td></tr>';
+                    return;
+                }
+
+                document.getElementById('inventory-body').innerHTML = products.map(p => {
+                    const pid = p._id || p.id;
+                    const discount = p.originalPrice ? Math.round((1 - p.price / p.originalPrice) * 100) : 0;
+                    return `
+                    <tr>
+                        <td><div style="width:20px; height:20px; border-radius:50%; background:${p.color || '#10b981'}"></div></td>
+                        <td><strong>${p.name}</strong></td>
+                        <td>${p.category}</td>
+                        <td>
+                            <input type="number" value="${p.price}" id="p-${pid}" style="width:70px; padding:4px; background:#111; color:white; border:1px solid #333; border-radius:4px;">
+                            <button onclick="updPrice('${pid}')" style="padding:4px 8px; background:var(--success); border:none; color:white; border-radius:4px; cursor:pointer; font-size:0.75rem; margin-left:4px;">💾</button>
+                        </td>
+                        <td>
+                            <input type="number" value="${p.originalPrice || ''}" id="op-${pid}" placeholder="No discount" style="width:70px; padding:4px; background:#111; color:white; border:1px solid #333; border-radius:4px;">
+                            <button onclick="updOriginalPrice('${pid}')" style="padding:4px 8px; background:var(--info); border:none; color:white; border-radius:4px; cursor:pointer; font-size:0.75rem; margin-left:4px;">💾</button>
+                        </td>
+                        <td>
+                            ${discount > 0 ? `<span style="color:var(--success); font-weight:600;">${discount}% OFF</span>` : '<span style="color:#666;">-</span>'}
+                        </td>
+                        <td>
+                            <button onclick="togStock('${pid}')" style="margin-right:5px; padding:4px 8px; border-radius:4px; font-size:0.75rem;">${p.inStock !== false ? '✅ Stock' : '❌ Out'}</button>
+                            <button onclick="deleteProduct('${pid}')" style="background:var(--danger); border:none; color:white; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.75rem;">🗑️</button>
+                        </td>
+                    </tr>
+                `}).join('');
+            } catch (e) {
+                console.error('fetchInv error:', e);
+                document.getElementById('inventory-body').innerHTML = '<tr><td colspan="7" style="text-align:center;color:red;padding:2rem;">Error loading products. Check server connection.</td></tr>';
+            }
         }
 
         async function updPrice(id) {

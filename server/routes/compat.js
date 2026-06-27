@@ -588,4 +588,139 @@ router.post('/admin/approve-payment', adminProtect, async (req, res) => {
   }
 });
 
+// =========================================
+// Legacy Admin Routes for admin.html
+// =========================================
+
+// @route   GET /api/admin/all-products  (admin.html fetchInv uses /api/products but we fix that in admin.html)
+// GET /api/products is already handled by products.js — admin.html reads .products array
+
+// @route   POST /api/admin/update-price
+router.post('/admin/update-price', adminProtect, async (req, res) => {
+  try {
+    const { id, price } = req.body;
+    const product = await Product.findByIdAndUpdate(id, { price: Number(price) }, { new: true });
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+    res.json({ success: true, product });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// @route   POST /api/admin/update-original-price
+router.post('/admin/update-original-price', adminProtect, async (req, res) => {
+  try {
+    const { id, originalPrice } = req.body;
+    const product = await Product.findByIdAndUpdate(
+      id,
+      { originalPrice: originalPrice ? Number(originalPrice) : null },
+      { new: true }
+    );
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+    res.json({ success: true, product });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// @route   POST /api/admin/toggle-stock
+router.post('/admin/toggle-stock', adminProtect, async (req, res) => {
+  try {
+    const { id } = req.body;
+    const product = await Product.findById(id);
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+    product.inStock = !product.inStock;
+    await product.save();
+    res.json({ success: true, inStock: product.inStock });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// @route   POST /api/admin/delete-product
+router.post('/admin/delete-product', adminProtect, async (req, res) => {
+  try {
+    const { id } = req.body;
+    await Product.findByIdAndDelete(id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// @route   POST /api/admin/add-product
+router.post('/admin/add-product', adminProtect, async (req, res) => {
+  try {
+    const { name, price, category, description, color, unit } = req.body;
+    if (!name || !price || !category) {
+      return res.status(400).json({ success: false, message: 'name, price, and category are required' });
+    }
+    const product = await Product.create({
+      name,
+      price: Number(price),
+      category,
+      description: description || '',
+      color: color || '#10b981',
+      unit: unit || 'kg',
+      inStock: true,
+      rating: 4.0,
+      reviewCount: 0
+    });
+    res.status(201).json({ success: true, product });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// @route   POST /api/admin/ban-user  (legacy — admin.html uses phone-based ban)
+router.post('/admin/ban-user', adminProtect, async (req, res) => {
+  try {
+    const { phone, action } = req.body;
+    const isBanned = action === 'ban';
+    const user = await User.findOneAndUpdate({ phone }, { isBanned }, { new: true });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// @route   GET /api/admin/users  (legacy users list for admin.html)
+router.get('/admin/users', adminProtect, async (req, res) => {
+  try {
+    const users = await User.find().sort({ createdAt: -1 });
+    const result = users.map(u => ({
+      name: u.name,
+      phone: u.phone,
+      email: u.email || '',
+      address: u.address || '',
+      is_banned: u.isBanned,
+      last_login: u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('en-IN') : 'Never',
+      totalOrders: u.totalOrders || 0,
+      totalSpent: u.totalSpent || 0,
+      subscription: u.subscription
+    }));
+    res.json(result);
+  } catch (err) {
+    res.status(500).json([]);
+  }
+});
+
+// @route   POST /api/admin/resolve-complaint  (legacy)
+router.post('/admin/resolve-complaint', adminProtect, async (req, res) => {
+  try {
+    const { order_id, reply } = req.body;
+    const order = await Order.findOne({ orderId: order_id });
+    if (!order) return res.status(404).json({ success: false });
+    if (order.complaint) {
+      order.complaint.status = 'Resolved';
+      order.complaint.adminReply = reply || '';
+      await order.save();
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+});
+
 module.exports = router;
