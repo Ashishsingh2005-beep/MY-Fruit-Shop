@@ -490,6 +490,8 @@ const PaymentVerificationSchema = new mongoose.Schema({
   verificationId: { type: String, required: true, unique: true },
   user: { type: mongoose.Schema.Types.Mixed },
   amount: { type: Number, required: true },
+  type: { type: String, enum: ['order', 'subscription'], default: 'order' },
+  metadata: { type: mongoose.Schema.Types.Mixed, default: {} },
   status: { type: String, enum: ['pending', 'approved'], default: 'pending' },
   createdAt: { type: Date, default: Date.now }
 });
@@ -498,13 +500,15 @@ const PaymentVerification = mongoose.models.PaymentVerification || mongoose.mode
 // @route   POST /api/verify-payment
 router.post('/verify-payment', async (req, res) => {
   try {
-    const { user, amount } = req.body;
+    const { user, amount, type, metadata } = req.body;
     const req_id = `PAY-${Date.now()}`;
     
     await PaymentVerification.create({
       verificationId: req_id,
       user: user || 'Unknown',
       amount: amount || 0,
+      type: type || 'order',
+      metadata: metadata || {},
       status: 'pending'
     });
     
@@ -539,6 +543,8 @@ router.get('/admin/pending-payments', adminProtect, async (req, res) => {
       id: p.verificationId,
       user: typeof p.user === 'object' ? `${p.user.name} (${p.user.phone})` : String(p.user),
       amount: p.amount,
+      type: p.type || 'order',
+      metadata: p.metadata || {},
       timestamp: p.createdAt.toISOString().replace('T', ' ').slice(0, 19),
       time: p.createdAt.toISOString().replace('T', ' ').slice(0, 19)
     }));
@@ -562,6 +568,18 @@ router.post('/admin/approve-payment', adminProtect, async (req, res) => {
     
     if (!verification) {
       return res.status(404).json({ success: false, message: 'Verification not found' });
+    }
+    
+    // If subscription payment, auto-activate subscription
+    if (verification.type === 'subscription' && verification.metadata && verification.metadata.plan) {
+      const userName = typeof verification.user === 'object' ? verification.user.name : String(verification.user);
+      await User.findOneAndUpdate({ name: userName }, {
+        subscription: {
+          plan: verification.metadata.plan,
+          startDate: new Date(),
+          status: 'active'
+        }
+      });
     }
     
     res.json({ success: true });

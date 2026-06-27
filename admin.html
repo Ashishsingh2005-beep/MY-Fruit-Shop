@@ -438,7 +438,8 @@
                         <tr>
                             <th>Time</th>
                             <th>User</th>
-                            <th>Amount</th>
+                            <th>Amount / Plan</th>
+                            <th>Type</th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -986,14 +987,23 @@
                 const pBody = document.getElementById('payments-body');
                 if (pBody) {
                     document.getElementById('payments-empty').style.display = payments.length ? 'none' : 'block';
-                    pBody.innerHTML = payments.map(p => `
+                    pBody.innerHTML = payments.map(p => {
+                        const isSubscription = p.type === 'subscription';
+                        const typeBadge = isSubscription
+                            ? `<span style="background:rgba(217,70,239,0.2); color:#d946ef; padding:2px 8px; border-radius:20px; font-size:0.75rem; font-weight:700;">📦 SUBSCRIPTION</span>`
+                            : `<span style="background:rgba(251,191,36,0.15); color:#fbbf24; padding:2px 8px; border-radius:20px; font-size:0.75rem; font-weight:700;">🛒 ORDER</span>`;
+                        const planInfo = isSubscription && p.metadata && p.metadata.plan
+                            ? `<br><span style="font-size:0.8rem; color:#94a3b8;">Plan: ${p.metadata.plan}</span>`
+                            : '';
+                        return `
                         <tr>
                             <td>${p.timestamp || p.time}</td>
                             <td>${p.user}</td>
-                            <td style="color:#fbbf24; font-weight:700;">₹${p.amount}</td>
+                            <td style="color:#fbbf24; font-weight:700;">₹${p.amount}${planInfo}</td>
+                            <td>${typeBadge}</td>
                             <td><button class="action-btn" onclick="approve('${p.id}')">Approve</button></td>
-                        </tr>
-                    `).join('');
+                        </tr>`;
+                    }).join('');
                 }
 
                 const filt = document.getElementById('order-filter').value;

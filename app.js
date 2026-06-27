@@ -3959,28 +3959,130 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Please login to subscribe!");
             return;
         }
-        if (!confirm(`Confirm subscription to ${plan} for ₹${price}?`)) return;
+        
+        // Show subscription payment modal with UPI QR
+        const existingModal = document.getElementById('sub-pay-modal');
+        if (existingModal) existingModal.remove();
+
+        const upiID = "roy349647@oksbi";
+        const upiLink = `upi://pay?pa=${upiID}&pn=${encodeURIComponent("Ajay Fruit Mart")}&am=${price}&cu=INR`;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiLink)}`;
+
+        const modal = document.createElement('div');
+        modal.id = 'sub-pay-modal';
+        modal.style.cssText = "display:flex; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center;";
+        modal.innerHTML = `
+            <div style="background:#111827; padding:2rem; border-radius:20px; text-align:center; max-width:420px; width:90%; color:white; border: 1px solid rgba(16,185,129,0.3); box-shadow: 0 0 40px rgba(16,185,129,0.1);">
+                <div style="font-size:2rem; margin-bottom:0.5rem;">📦</div>
+                <h2 style="font-family:var(--font-serif); font-size:1.5rem; margin-bottom:0.3rem; color:#10b981;">Subscribe to ${plan}</h2>
+                <p style="color:#94a3b8; font-size:0.9rem; margin-bottom:1.5rem;">Pay ₹${price} via UPI to activate your subscription</p>
+
+                <div style="background:#0f172a; border-radius:12px; padding:1rem; margin-bottom:1.5rem; border:1px solid rgba(255,255,255,0.08);">
+                    <img src="${qrUrl}" alt="UPI QR" style="width:200px; height:200px; object-fit:contain; border-radius:8px; border:2px solid #10b981; display:block; margin:0 auto 0.8rem auto;">
+                    <p style="color:#10b981; font-size:0.9rem; margin:0;">UPI ID: <strong>${upiID}</strong></p>
+                    <p style="color:#94a3b8; font-size:0.8rem; margin:0.3rem 0 0 0;">Or scan with GPay / PhonePe / Paytm</p>
+                </div>
+
+                <div style="background:rgba(16,185,129,0.08); border-radius:10px; padding:0.8rem; margin-bottom:1.5rem; border:1px solid rgba(16,185,129,0.2); display:flex; align-items:center; gap:0.8rem;">
+                    <input type="checkbox" id="sub-payment-confirm" style="width:18px; height:18px; accent-color:#10b981; flex-shrink:0; cursor:pointer;">
+                    <label for="sub-payment-confirm" style="font-size:0.88rem; color:#d1fae5; text-align:left; cursor:pointer; line-height:1.4;">
+                        I have paid ₹${price} to <strong>${upiID}</strong>
+                    </label>
+                </div>
+
+                <div style="display:flex; gap:0.8rem;">
+                    <button onclick="document.getElementById('sub-pay-modal').remove()" style="flex:1; padding:0.8rem; background:transparent; color:#94a3b8; border:1px solid rgba(255,255,255,0.1); border-radius:10px; cursor:pointer; font-size:0.95rem;">Cancel</button>
+                    <button id="sub-confirm-btn" onclick="window.confirmSubPayment('${plan}', ${price})" style="flex:2; padding:0.8rem; background:#10b981; color:black; border:none; border-radius:10px; cursor:pointer; font-size:0.95rem; font-weight:700;">Confirm & Activate</button>
+                </div>
+                <p style="color:#64748b; font-size:0.78rem; margin-top:1rem;">⚠️ Your subscription will be activated after admin verifies your payment.</p>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    };
+
+    window.confirmSubPayment = async function (plan, price) {
+        const checkbox = document.getElementById('sub-payment-confirm');
+        if (!checkbox || !checkbox.checked) {
+            alert("Please check the box confirming you have made the payment.");
+            return;
+        }
+
+        const btn = document.getElementById('sub-confirm-btn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Submitting...'; }
 
         try {
-            const res = await fetch(`${API_BASE}/api/subscribe`, {
+            const res = await fetch(`${API_BASE}/api/verify-payment`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user: state.user.name, plan, price })
+                body: JSON.stringify({
+                    user: { name: state.user.name, phone: state.user.phone },
+                    amount: price,
+                    type: 'subscription',
+                    metadata: { plan }
+                })
             });
             const data = await res.json();
-            if (data.success) {
-                showToast(`Subscribed! ID: ${data.sub_id}`, "🎉");
-                state.user.subscription = data.subscription;
-                localStorage.setItem('fruitShopUser', JSON.stringify(state.user));
-                window.location.hash = '#profile';
-            } else {
-                alert("Subscription failed: " + (data.error || "Unknown error"));
+            if (!data.success) {
+                alert("Failed to submit payment. Try again.");
+                if (btn) { btn.disabled = false; btn.textContent = 'Confirm & Activate'; }
+                return;
             }
-        } catch (e) { 
-            console.error(e); 
-            alert("Error subscribing. Please try again.");
+
+            // Close QR modal, show waiting modal
+            const modal = document.getElementById('sub-pay-modal');
+            if (modal) modal.remove();
+
+            // Show waiting modal
+            const waitModal = document.createElement('div');
+            waitModal.id = 'sub-wait-modal';
+            waitModal.style.cssText = "display:flex; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center;";
+            waitModal.innerHTML = `
+                <div style="background:#111827; padding:2.5rem; border-radius:20px; text-align:center; max-width:380px; width:90%; color:white; border:1px solid rgba(16,185,129,0.3);">
+                    <div style="font-size:3rem; margin-bottom:1rem;">⏳</div>
+                    <h2 style="font-family:var(--font-serif); margin-bottom:0.8rem; color:#10b981;">Verifying Payment</h2>
+                    <p style="color:#94a3b8; margin-bottom:2rem; font-size:0.9rem;">Waiting for admin to confirm your ₹${price} payment.<br>Please do not close this page.</p>
+                    <div style="border:3px solid rgba(255,255,255,0.1); border-top:3px solid #10b981; border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite; margin:0 auto;"></div>
+                    <style>@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}</style>
+                </div>
+            `;
+            document.body.appendChild(waitModal);
+
+            // Poll for approval
+            const reqId = data.req_id;
+            let subPollInterval = setInterval(async () => {
+                try {
+                    const statusRes = await fetch(`${API_BASE}/api/check-payment-status?req_id=${reqId}`);
+                    const statusData = await statusRes.json();
+
+                    if (statusData.status === 'approved') {
+                        clearInterval(subPollInterval);
+                        const wm = document.getElementById('sub-wait-modal');
+                        if (wm) wm.remove();
+
+                        // Fetch updated user to get subscription
+                        try {
+                            const userRes = await fetch(`${API_BASE}/api/user?phone=${state.user.phone}`);
+                            const userData = await userRes.json();
+                            if (userData.found) {
+                                state.user = { ...state.user, ...userData.user };
+                                localStorage.setItem('fruitShopUser', JSON.stringify(state.user));
+                            }
+                        } catch (e) {}
+
+                        showToast(`🎉 Subscription Activated! Plan: ${plan}`, "📦");
+                        window.location.hash = '#profile';
+                    }
+                } catch (e) {
+                    console.error("Polling error", e);
+                }
+            }, 3000);
+
+        } catch (e) {
+            console.error(e);
+            alert("Network error. Please try again.");
+            if (btn) { btn.disabled = false; btn.textContent = 'Confirm & Activate'; }
         }
-    }
+    };
 
     window.cancelSubscription = async function () {
         if (!state.user.name) return;
