@@ -71,7 +71,9 @@ OrderSchema.pre('save', function (next) {
   if (!this.orderId) {
     this.orderId = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   }
-  next();
+  if (typeof next === 'function') {
+    next();
+  }
 });
 
 module.exports = mongoose.model('Order', OrderSchema);
