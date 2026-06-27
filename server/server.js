@@ -21,12 +21,21 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Rate Limiting
-const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, message: 'Too many requests' });
+const limiter = rateLimit({ 
+  windowMs: 15 * 60 * 1000, 
+  max: 5000, 
+  message: { success: false, message: 'Too many requests. Please try again later.' } 
+});
 app.use('/api/', limiter);
 
 // OTP Rate Limit (stricter)
-const otpLimiter = rateLimit({ windowMs: 5 * 60 * 1000, max: 5, message: 'Too many OTP requests' });
+const otpLimiter = rateLimit({ 
+  windowMs: 5 * 60 * 1000, 
+  max: 10, 
+  message: { success: false, message: 'Too many OTP requests. Please wait a few minutes.' } 
+});
 app.use('/api/auth/send-otp', otpLimiter);
+
 
 // ─── Static Files (Serving original HTML/CSS) ───────────────
 const path = require('path');
