@@ -13,24 +13,26 @@ const otpStore = new Map();
 // Helper: Generate 6-digit OTP
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
+let globalSettings = {
+  weekend_discount: 5,
+  sub_weekly_price: 99,
+  sub_daily_price: 299
+};
+
 // @route   GET /api/settings
 router.get('/settings', (req, res) => {
-  res.json({
-    weekend_discount: 5,
-    sub_weekly_price: 99,
-    sub_daily_price: 299
-  });
+  res.json(globalSettings);
 });
 
 // @route   POST /api/settings
 router.post('/settings', (req, res) => {
+  const { weekend_discount, sub_weekly_price, sub_daily_price } = req.body;
+  if (weekend_discount !== undefined) globalSettings.weekend_discount = Number(weekend_discount);
+  if (sub_weekly_price !== undefined) globalSettings.sub_weekly_price = Number(sub_weekly_price);
+  if (sub_daily_price !== undefined) globalSettings.sub_daily_price = Number(sub_daily_price);
   res.json({
     success: true,
-    settings: {
-      weekend_discount: 5,
-      sub_weekly_price: 99,
-      sub_daily_price: 299
-    }
+    settings: globalSettings
   });
 });
 
@@ -54,7 +56,8 @@ router.get('/user', async (req, res) => {
           phone: user.phone,
           email: user.email,
           address: user.address,
-          is_banned: user.isBanned
+          is_banned: user.isBanned,
+          subscription: user.subscription
         }
       });
     }
@@ -151,7 +154,8 @@ router.post('/login', async (req, res) => {
         address: user.address,
         role: user.role,
         totalOrders: user.totalOrders,
-        totalSpent: user.totalSpent
+        totalSpent: user.totalSpent,
+        subscription: user.subscription
       }
     });
   } catch (err) {
@@ -367,14 +371,49 @@ router.get('/recommendations', async (req, res) => {
 router.post('/subscribe', async (req, res) => {
   try {
     const { user, plan } = req.body;
-    await User.findOneAndUpdate({ name: user }, {
+    const sub_id = `SUB-${Date.now()}`;
+    const updatedUser = await User.findOneAndUpdate({ name: user }, {
       subscription: {
         plan,
         startDate: new Date(),
         status: 'active'
       }
+    }, { new: true });
+    
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+    
+    res.json({ 
+      success: true, 
+      sub_id, 
+      subscription: updatedUser.subscription 
     });
-    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// @route   POST /api/subscribe/cancel
+router.post('/subscribe/cancel', async (req, res) => {
+  try {
+    const { user } = req.body;
+    const updatedUser = await User.findOneAndUpdate({ name: user }, {
+      subscription: {
+        plan: null,
+        startDate: null,
+        status: null
+      }
+    }, { new: true });
+    
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+    
+    res.json({ 
+      success: true, 
+      subscription: updatedUser.subscription 
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

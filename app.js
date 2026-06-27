@@ -2277,13 +2277,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Try to fetch from server (to get latest updates)
             try {
-                const [ordersRes, complaintsRes] = await Promise.all([
+                const [ordersRes, complaintsRes, userRes] = await Promise.all([
                     fetch(`${API_BASE}/api/orders?phone=${state.user.phone}`),
-                    fetch(`${API_BASE}/api/complaint?phone=${state.user.phone}`)
+                    fetch(`${API_BASE}/api/complaint?phone=${state.user.phone}`),
+                    fetch(`${API_BASE}/api/user?phone=${state.user.phone}`)
                 ]);
 
                 const fetchedOrders = await ordersRes.json();
                 const fetchedComplaints = await complaintsRes.json();
+                const userData = await userRes.json();
+
+                if (userData.found) {
+                    state.user = { ...state.user, ...userData.user };
+                    localStorage.setItem('fruitShopUser', JSON.stringify(state.user));
+                }
 
                 // Merge Strategies:
                 // 1. Keep all fetched orders (Server Truth)
@@ -2344,6 +2351,33 @@ document.addEventListener('DOMContentLoaded', () => {
             }
                     </div>
                 </div>
+
+                ${state.user.name ? `
+                    <div class="profile-subscription" style="margin-bottom: 2rem;">
+                        ${state.user.subscription && state.user.subscription.status === 'active' ? `
+                            <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.02)); padding: 2rem; border-radius: 20px; border: 1px solid #10b981; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h3 style="font-family: var(--font-serif); font-size: 1.3rem; margin-bottom: 0.5rem; color: #10b981; display: flex; align-items: center; gap: 0.5rem;">📦 Active Subscription</h3>
+                                    <p style="margin: 0; font-size: 1.1rem; font-weight: bold; color: white;">Plan: ${state.user.subscription.plan}</p>
+                                    <p style="margin: 0; font-size: 0.85rem; color: var(--text-gray);">Started on: ${new Date(state.user.subscription.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                                </div>
+                                <div>
+                                    <button class="btn btn-outline" style="border-color: #ff4444; color: #ff4444; padding: 10px 20px;" onclick="cancelSubscription()">Cancel Subscription</button>
+                                </div>
+                            </div>
+                        ` : `
+                            <div style="background: rgba(255,255,255,0.02); padding: 1.5rem 2rem; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h3 style="font-family: var(--font-serif); font-size: 1.1rem; margin: 0 0 0.2rem 0; color: var(--text-gray);">📦 Subscription Box</h3>
+                                    <p style="margin: 0; font-size: 0.9rem; color: var(--text-gray);">Get fresh fruits delivered weekly or daily at discount prices.</p>
+                                </div>
+                                <div>
+                                    <a href="#subscriptions" class="btn btn-primary" style="padding: 10px 20px; font-size: 0.9rem; background: var(--primary-color);">Explore Plans</a>
+                                </div>
+                            </div>
+                        `}
+                    </div>
+                ` : ''}
 
                 <div class="profile-orders">
                     <h2 style="font-family: var(--font-serif); margin-bottom: 1.5rem;">Order History (${userOrders.length})</h2>
@@ -3936,8 +3970,41 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             if (data.success) {
                 showToast(`Subscribed! ID: ${data.sub_id}`, "🎉");
+                state.user.subscription = data.subscription;
+                localStorage.setItem('fruitShopUser', JSON.stringify(state.user));
+                window.location.hash = '#profile';
+            } else {
+                alert("Subscription failed: " + (data.error || "Unknown error"));
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+            console.error(e); 
+            alert("Error subscribing. Please try again.");
+        }
+    }
+
+    window.cancelSubscription = async function () {
+        if (!state.user.name) return;
+        if (!confirm("Are you sure you want to cancel your fruit box subscription?")) return;
+
+        try {
+            const res = await fetch(`${API_BASE}/api/subscribe/cancel`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user: state.user.name })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast("Subscription cancelled successfully", "📦");
+                state.user.subscription = data.subscription;
+                localStorage.setItem('fruitShopUser', JSON.stringify(state.user));
+                renderProfile();
+            } else {
+                alert("Failed to cancel subscription: " + (data.error || "Unknown error"));
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error communicating with server.");
+        }
     }
 
     // Hook into Router for Recommendations & Subscription Page
