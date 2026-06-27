@@ -229,6 +229,7 @@ router.get('/orders', async (req, res) => {
         ...obj,
         id: o.orderId,
         status: o.delivery.status,
+        delivery_status: o.delivery.status,
         delivery_person: o.delivery.deliveryPerson?.name || 'Rahul Kumar',
         delivery_phone: o.delivery.deliveryPerson?.phone || '9876543210',
         delivery_vehicle: o.delivery.deliveryPerson?.vehicle || 'Bike - DL 01 AB 1234'
