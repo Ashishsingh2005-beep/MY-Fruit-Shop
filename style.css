@@ -1394,3 +1394,8 @@ footer {
     display: none;
     font-style: italic;
 }
+
+/* Mobile-only elements should be hidden on desktop */
+.mobile-only {
+    display: none !important;
+}

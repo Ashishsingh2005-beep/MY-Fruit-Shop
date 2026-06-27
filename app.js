@@ -920,6 +920,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const loginBtn = document.getElementById('login-btn');
         if (loginBtn) loginBtn.style.display = 'none';
+        const loginMobile = document.querySelector('.login-mobile');
+        if (loginMobile) loginMobile.style.display = 'none';
 
         closeLoginModal();
 
@@ -3418,6 +3420,27 @@ document.addEventListener('DOMContentLoaded', () => {
     window.goToProduct = function (id) {
         document.getElementById('search-suggestions').classList.add('hidden');
         window.location.hash = `#product/${id}`;
+        window.closeMobileMenu(); // Close menu if search item clicked
+    }
+
+    // Mobile menu helper
+    window.closeMobileMenu = function () {
+        const navLinks = document.querySelector('.nav-links');
+        const mobileBtn = document.querySelector('.mobile-toggle');
+        if (navLinks) navLinks.classList.remove('active');
+        if (mobileBtn) mobileBtn.classList.remove('open');
+    }
+
+    // Toggle search bar on mobile
+    window.toggleMobileSearch = function () {
+        const searchBar = document.querySelector('.search-bar');
+        if (searchBar) {
+            searchBar.classList.toggle('active');
+            if (searchBar.classList.contains('active')) {
+                const searchInput = document.getElementById('search-input');
+                if (searchInput) searchInput.focus();
+            }
+        }
     }
 
     // Hide suggestions when clicking outside
@@ -3839,6 +3862,8 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 const loginBtn = document.getElementById('login-btn');
                 if (loginBtn) loginBtn.style.display = 'none';
+                const loginMobile = document.querySelector('.login-mobile');
+                if (loginMobile) loginMobile.style.display = 'none';
             }, 500); // Small delay to ensure DOM is ready
         }
 

@@ -125,12 +125,15 @@
     <nav class="navbar container">
       <a href="#" class="logo">Ajay <span>Fruit Mart</span></a>
       <ul class="nav-links">
-        <li><a href="#home" class="active">Home</a></li>
+        <li><a href="#home" class="active" onclick="closeMobileMenu()">Home</a></li>
         <li><a href="#fruits-section"
-            onclick="setTimeout(()=>document.getElementById('fruits-section').scrollIntoView(), 100)">Collection</a>
+            onclick="closeMobileMenu(); setTimeout(()=>document.getElementById('fruits-section').scrollIntoView(), 100)">Collection</a>
         </li>
-        <li><a href="#about">Our Story</a></li>
-        <li><a href="#subscriptions" style="color: #d946ef; font-weight: bold;">Plans</a></li>
+        <li><a href="#about" onclick="closeMobileMenu()">Our Story</a></li>
+        <li><a href="#subscriptions" style="color: #d946ef; font-weight: bold;" onclick="closeMobileMenu()">Plans</a></li>
+        <li class="mobile-only"><a href="#wishlist" onclick="closeMobileMenu()">Wishlist ❤️</a></li>
+        <li class="mobile-only"><a href="#profile" onclick="closeMobileMenu()">My Profile 👤</a></li>
+        <li class="mobile-only login-mobile"><a href="#" onclick="loginUser(); closeMobileMenu()">Login / Register 🔑</a></li>
       </ul>
       <div class="nav-actions">
         <button id="theme-toggle" class="icon-btn" aria-label="Toggle Theme" onclick="toggleTheme()"
@@ -161,7 +164,7 @@
             autocomplete="off">
           <div id="search-suggestions" class="suggestions-dropdown hidden"></div>
         </div>
-        <button class="icon-btn" aria-label="Search" onclick="document.getElementById('search-input').focus()">
+        <button class="icon-btn search-trigger-btn" aria-label="Search" onclick="toggleMobileSearch()">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8"></circle>
