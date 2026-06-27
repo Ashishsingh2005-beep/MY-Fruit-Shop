@@ -2292,18 +2292,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.setItem('fruitShopUser', JSON.stringify(state.user));
                 }
 
-                // Merge Strategies:
-                // 1. Keep all fetched orders (Server Truth)
-                // 2. Add any local orders that are NOT in fetched orders (Offline created)
-                const serverOrderIds = new Set(fetchedOrders.map(o => o.id));
-                const localOnlyOrders = userOrders.filter(o => !serverOrderIds.has(o.id));
-
-                // Combine and Sort
-                userOrders = [...localOnlyOrders, ...fetchedOrders];
-
-                // Sort by time (Newest first) - assuming simple parsing or just trust order
-                // For simplicity, we trust the merge order (local on top usually) or re-sort if needed
-
+                // Trust server orders as the source of truth to avoid duplicate fake local orders
+                if (Array.isArray(fetchedOrders)) {
+                    userOrders = fetchedOrders;
+                }
+                
                 userComplaints = fetchedComplaints;
 
                 // Save merged list to localStorage
