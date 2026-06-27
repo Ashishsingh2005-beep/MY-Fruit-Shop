@@ -266,40 +266,74 @@
             <div id="server-status" style="margin-top: 1rem; font-size: 0.8rem; color: #64748b;">
                 Checking Server...
             </div>
-            <div style="margin-top: 0.5rem;">
-                <a href="index.html" style="color: #64748b; text-decoration: none; font-size: 0.9rem;">← Back to
-                    Shop</a>
+            <div id="api-config-section" style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem; display:none;">
+                <label style="display:block; font-size:0.8rem; color:#94a3b8; margin-bottom:0.5rem; text-align:left;">Backend API URL:</label>
+                <input type="text" id="custom-api-base" style="width:100%; padding:0.5rem; background:#111; color:white; border:1px solid #333; border-radius:6px; font-size:0.85rem; margin-bottom:0.5rem;" placeholder="e.g., https://fruit-shop-backend.onrender.com">
+                <button class="action-btn" onclick="saveCustomApiUrl()" style="width:100%; padding:0.5rem; font-size:0.85rem; background:var(--primary-color); border:none; border-radius:6px; color:white; cursor:pointer;">Save & Test</button>
+            </div>
+            <div style="margin-top: 0.8rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+                <a href="index.html" style="color: #64748b; text-decoration: none; font-size: 0.9rem;">← Back to Shop</a>
+                <a href="#" onclick="toggleApiConfig(event)" id="toggle-config-btn" style="color: #64748b; text-decoration: none; font-size: 0.85rem;">⚙️ Configure URL</a>
             </div>
         </div>
     </div>
 
     <script>
+        // Global API_BASE initialization
+        let API_BASE = localStorage.getItem('admin_api_base');
+        if (!API_BASE) {
+            API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:') ? 'http://127.0.0.1:5000' : window.location.origin;
+        }
+
         // Global Error Handler
         window.onerror = function (msg, url, line) {
             console.error("Global Error:", msg, url, line);
         };
 
-        // Check Server Status
+        // Check Server Status using dynamic API_BASE
         (async function checkServer() {
             const statusEl = document.getElementById('server-status');
             try {
-                // Quick ping to check if server is up
+                // Populate current API Base value in input
+                const apiInput = document.getElementById('custom-api-base');
+                if (apiInput) apiInput.value = API_BASE;
+                
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 2000);
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-                await fetch('http://127.0.0.1:5000/api/settings', {
+                const res = await fetch(`${API_BASE}/api/settings`, {
                     method: 'GET',
                     signal: controller.signal
                 });
-
+                
                 clearTimeout(timeoutId);
                 statusEl.innerHTML = '🟢 Server Online';
                 statusEl.style.color = '#10b981';
             } catch (e) {
-                statusEl.innerHTML = '🔴 Server Offline (Run python backend/server.py)';
+                statusEl.innerHTML = '🔴 Server Offline (' + API_BASE + ')';
                 statusEl.style.color = '#ef4444';
             }
         })();
+
+        function toggleApiConfig(e) {
+            e.preventDefault();
+            const sec = document.getElementById('api-config-section');
+            sec.style.display = sec.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function saveCustomApiUrl() {
+            let val = document.getElementById('custom-api-base').value.trim();
+            if (val) {
+                if (val.endsWith('/')) val = val.substring(0, val.length - 1);
+                localStorage.setItem('admin_api_base', val);
+                alert("API Server URL saved! Reloading page...");
+                location.reload();
+            } else {
+                localStorage.removeItem('admin_api_base');
+                alert("Reset to default URL! Reloading...");
+                location.reload();
+            }
+        }
     </script>
 
     <!-- MAIN DASHBOARD -->
@@ -633,8 +667,16 @@
     </div>
 
     <script>
-        const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://127.0.0.1:5000' : '';
         let authToken = sessionStorage.getItem('adminToken');
+
+        async function fetchAdmin(url, options = {}) {
+            if (!options.headers) options.headers = {};
+            options.headers['Authorization'] = `Bearer ${authToken}`;
+            if (options.method && options.method !== 'GET' && !options.headers['Content-Type']) {
+                options.headers['Content-Type'] = 'application/json';
+            }
+            return fetch(url, options);
+        }
 
         async function checkAuth() {
             if (!authToken) return;
@@ -677,7 +719,7 @@
 
         async function updateStats() {
             try {
-                const res = await fetch(`${API_BASE}/api/admin/stats`);
+                const res = await fetchAdmin(`${API_BASE}/api/admin/stats`);
                 const data = await res.json();
                 document.getElementById('stat-revenue').textContent = `₹${data.totalRevenue}`;
                 document.getElementById('stat-total-orders').textContent = data.totalOrders;
@@ -763,7 +805,7 @@
 
         async function updateForecastChart() {
             try {
-                const res = await fetch(`${API_BASE}/api/demand-forecast`);
+                const res = await fetchAdmin(`${API_BASE}/api/demand-forecast`);
                 const data = await res.json();
                 if (!data.success) return;
 
@@ -829,7 +871,7 @@
 
         async function updateAnalyticsCharts() {
             try {
-                const res = await fetch(`${API_BASE}/api/admin/analytics`);
+                const res = await fetchAdmin(`${API_BASE}/api/admin/analytics`);
                 const data = await res.json();
                 if (!data.success) return;
 
@@ -876,8 +918,8 @@
         async function refreshData() {
             try {
                 const [pRes, oRes] = await Promise.all([
-                    fetch(`${API_BASE}/api/admin/pending-payments`),
-                    fetch(`${API_BASE}/api/orders`)
+                    fetchAdmin(`${API_BASE}/api/admin/pending-payments`),
+                    fetchAdmin(`${API_BASE}/api/orders`)
                 ]);
                 const payments = await pRes.json();
                 const orders = await oRes.json();
@@ -927,9 +969,8 @@
         }
 
         async function updOrder(id, type, val) {
-            await fetch(`${API_BASE}/api/admin/update-order`, {
+            await fetchAdmin(`${API_BASE}/api/admin/update-order`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ order_id: id, type, value: val })
             });
             refreshData();
@@ -937,9 +978,8 @@
         }
 
         async function approve(id) {
-            await fetch(`${API_BASE}/api/admin/approve-payment`, {
+            await fetchAdmin(`${API_BASE}/api/admin/approve-payment`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ req_id: id })
             });
             refreshData();
@@ -956,7 +996,7 @@
 
         async function fetchAct() {
             try {
-                const res = await fetch(`${API_BASE}/api/activities`);
+                const res = await fetchAdmin(`${API_BASE}/api/activities`);
                 const data = await res.json();
                 document.getElementById('activity-feed').innerHTML = data.slice().reverse().map(a => `
                     <div class="feed-item">
@@ -968,7 +1008,7 @@
         }
 
         async function clearActivityFeed() {
-            await fetch(`${API_BASE}/api/clear-activities`, { method: 'POST' });
+            await fetchAdmin(`${API_BASE}/api/clear-activities`, { method: 'POST' });
             fetchAct();
         }
 
@@ -1013,9 +1053,8 @@
 
         async function updPrice(id) {
             const price = document.getElementById(`p-${id}`).value;
-            await fetch(`${API_BASE}/api/admin/update-price`, {
+            await fetchAdmin(`${API_BASE}/api/admin/update-price`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, price })
             });
             alert('✅ Selling price updated!');
@@ -1025,9 +1064,8 @@
 
         async function updOriginalPrice(id) {
             const originalPrice = document.getElementById(`op-${id}`).value;
-            await fetch(`${API_BASE}/api/admin/update-original-price`, {
+            await fetchAdmin(`${API_BASE}/api/admin/update-original-price`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, originalPrice: originalPrice || null })
             });
             alert('✅ Original price updated!');
@@ -1035,16 +1073,15 @@
         }
 
         async function togStock(id) {
-            await fetch(`${API_BASE}/api/admin/toggle-stock`, {
+            await fetchAdmin(`${API_BASE}/api/admin/toggle-stock`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id })
             });
             fetchInv();
         }
 
         async function fetchUsr() {
-            const res = await fetch(`${API_BASE}/api/admin/users`);
+            const res = await fetchAdmin(`${API_BASE}/api/admin/users`);
             const data = await res.json();
             document.getElementById('users-body').innerHTML = data.map(u => `
                 <tr>
@@ -1059,16 +1096,15 @@
         }
 
         async function togBan(phone, stat) {
-            await fetch(`${API_BASE}/api/admin/ban-user`, {
+            await fetchAdmin(`${API_BASE}/api/admin/ban-user`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ phone, action: stat ? 'unban' : 'ban' })
             });
             fetchUsr();
         }
 
         async function fetchComp() {
-            const res = await fetch(`${API_BASE}/api/admin/complaints`);
+            const res = await fetchAdmin(`${API_BASE}/api/admin/complaints`);
             const data = await res.json();
             document.getElementById('complaints-body').innerHTML = data.map(c => `
                 <tr>
@@ -1085,16 +1121,15 @@
         async function resComp(id) {
             const msg = prompt("Reply:");
             if (!msg) return;
-            await fetch(`${API_BASE}/api/admin/resolve-complaint`, {
+            await fetchAdmin(`${API_BASE}/api/admin/resolve-complaint`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, reply: msg })
             });
             fetchComp();
         }
 
         async function fetchRate() {
-            const res = await fetch(`${API_BASE}/api/admin/ratings`);
+            const res = await fetchAdmin(`${API_BASE}/api/admin/ratings`);
             const data = await res.json();
             document.getElementById('ratings-body').innerHTML = data.map(r => `
                 <tr>
@@ -1155,9 +1190,8 @@
             }
 
             try {
-                const res = await fetch(`${API_BASE}/api/admin/add-product`, {
+                const res = await fetchAdmin(`${API_BASE}/api/admin/add-product`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(productData)
                 });
 
@@ -1181,9 +1215,8 @@
             }
 
             try {
-                const res = await fetch(`${API_BASE}/api/admin/delete-product`, {
+                const res = await fetchAdmin(`${API_BASE}/api/admin/delete-product`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id: id })
                 });
 
@@ -1206,9 +1239,8 @@
             const dailyPrice = document.getElementById('setting-sub-daily').value;
 
             try {
-                const res = await fetch(`${API_BASE}/api/settings`, {
+                const res = await fetchAdmin(`${API_BASE}/api/settings`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         weekend_discount: parseInt(weekendVal),
                         sub_weekly_price: parseInt(weeklyPrice),
@@ -1223,7 +1255,7 @@
 
         async function loadSettings() {
             try {
-                const res = await fetch(`${API_BASE}/api/settings`);
+                const res = await fetchAdmin(`${API_BASE}/api/settings`);
                 const data = await res.json();
                 if (data.weekend_discount !== undefined) document.getElementById('setting-weekend-discount').value = data.weekend_discount;
                 if (data.sub_weekly_price !== undefined) document.getElementById('setting-sub-weekly').value = data.sub_weekly_price;

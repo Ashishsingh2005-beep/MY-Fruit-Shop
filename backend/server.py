@@ -74,10 +74,42 @@ complaints_db = []
 feedback_db = []
 ratings_db = []
 recent_activities = []
+ADMIN_SESSIONS_FILE = os.path.join(DATA_DIR, 'admin_sessions.json')
 admin_sessions = []
 products_db = []
 otp_storage = {}
 settings_db = {}
+
+# Load sessions persistently if available
+try:
+    if os.path.exists(ADMIN_SESSIONS_FILE):
+        with open(ADMIN_SESSIONS_FILE, 'r', encoding='utf-8') as f:
+            admin_sessions = json.load(f)
+except Exception as e:
+    admin_sessions = []
+
+from functools import wraps
+
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if request.method == 'OPTIONS':
+            return jsonify({}), 200
+        
+        token = None
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header.split(' ')[1]
+        
+        if not token and request.is_json:
+            token = request.json.get('token')
+            
+        if not token or token not in admin_sessions:
+            logging.warning(f"Unauthorized Admin Access attempt to {request.path}")
+            return jsonify({"success": False, "message": "Unauthorized Admin Access"}), 401
+            
+        return f(*args, **kwargs)
+    return decorated
 
 
 # --- HELPER FUNCTIONS ---
@@ -285,10 +317,12 @@ def api_check_payment_status():
         return jsonify({"status": "error"}), 500
 
 @app.route('/api/admin/pending-payments')
+@admin_required
 def api_pending_payments():
     return jsonify(pending_verifications)
 
 @app.route('/api/admin/approve-payment', methods=['POST', 'OPTIONS'])
+@admin_required
 def api_approve_payment():
     if request.method == 'OPTIONS':
         return jsonify({}), 200
@@ -500,7 +534,7 @@ def api_order_post():
             "items": items_str,
             "cart_details": cart,
             "delivery_status": "Processing",
-            "payment_status": "Paid" if payment == "UPI" else "Pending"
+            "payment_status": "Pending" if payment == "COD" else "Paid"
         }
         orders_db.append(new_order)
         safe_save_json(ORDERS_FILE, orders_db)
@@ -549,6 +583,7 @@ def api_admin_login():
     if password == 'admin123':
         token = f"ADM-{int(datetime.now().timestamp() * 1000)}"
         admin_sessions.append(token)
+        safe_save_json(ADMIN_SESSIONS_FILE, admin_sessions)
         return jsonify({"success": True, "token": token})
     else:
         return jsonify({"success": False, "message": "Invalid Password"}), 401
@@ -560,15 +595,12 @@ def api_admin_verify():
     token = request.json.get('token')
     if token in admin_sessions:
         return jsonify({"success": True})
-    # Also check if token format is valid to be lenient on restarts
-    if token and token.startswith('ADM-'):
-        # Re-add to sessions if it looks valid
-        admin_sessions.append(token)
-        return jsonify({"success": True})
         
     return jsonify({"success": False}), 401
 
+
 @app.route('/api/admin/stats')
+@admin_required
 def api_admin_stats():
     try:
         total_orders = len(orders_db)
@@ -587,10 +619,12 @@ def api_admin_stats():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/activities')
+@admin_required
 def api_activity():
     return jsonify(recent_activities)
 
 @app.route('/api/clear-activities', methods=['POST', 'OPTIONS'])
+@admin_required
 def api_clear_activity():
     if request.method == 'OPTIONS':
         return jsonify({}), 200
@@ -601,10 +635,12 @@ def api_clear_activity():
 
 # --- OTHER ADMIN ROUTES (Simplified) ---
 @app.route('/api/admin/users')
+@admin_required
 def api_admin_users():
     return jsonify(list(users_db.values()))
 
 @app.route('/api/admin/update-order', methods=['POST', 'OPTIONS'])
+@admin_required
 def api_admin_update_order():
     if request.method == 'OPTIONS':
         return jsonify({}), 200
@@ -622,6 +658,7 @@ def api_admin_update_order():
     return jsonify({"success": False}), 404
 
 @app.route('/api/admin/ban-user', methods=['POST', 'OPTIONS'])
+@admin_required
 def api_admin_ban_user():
     if request.method == 'OPTIONS':
         return jsonify({}), 200
@@ -636,6 +673,7 @@ def api_admin_ban_user():
     return jsonify({"success": False}), 404
 
 @app.route('/api/admin/resolve-complaint', methods=['POST', 'OPTIONS'])
+@admin_required
 def api_admin_resolve_complaint():
     if request.method == 'OPTIONS':
         return jsonify({}), 200
@@ -654,8 +692,10 @@ def api_admin_resolve_complaint():
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route('/api/admin/complaints')
+@admin_required
 def api_admin_complaints():
     return jsonify(complaints_db[::-1])
+
 
 @app.route('/api/complaint', methods=['GET', 'POST', 'OPTIONS'])
 def api_complaint():
@@ -682,6 +722,7 @@ def api_complaint():
     return jsonify({"success": True})
 
 @app.route('/api/admin/add-product', methods=['POST', 'OPTIONS'])
+@admin_required
 def api_add_product():
     if request.method == 'OPTIONS':
         return jsonify({}), 200
@@ -710,6 +751,7 @@ def api_add_product():
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route('/api/admin/update-price', methods=['POST', 'OPTIONS'])
+@admin_required
 def api_update_price():
     if request.method == 'OPTIONS':
         return jsonify({}), 200
@@ -727,6 +769,7 @@ def api_update_price():
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route('/api/admin/update-original-price', methods=['POST', 'OPTIONS'])
+@admin_required
 def api_update_original_price():
     if request.method == 'OPTIONS':
         return jsonify({}), 200
@@ -745,6 +788,7 @@ def api_update_original_price():
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route('/api/admin/toggle-stock', methods=['POST', 'OPTIONS'])
+@admin_required
 def api_toggle_stock():
     if request.method == 'OPTIONS':
         return jsonify({}), 200
@@ -759,13 +803,22 @@ def api_toggle_stock():
         return jsonify({"success": False}), 404
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
-        return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route('/api/settings', methods=['GET', 'POST', 'OPTIONS'])
 def handle_settings():
     if request.method == 'OPTIONS':
         return jsonify({}), 200
     if request.method == 'POST':
+        # Authorize admin for settings POST
+        token = None
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header.split(' ')[1]
+        if not token and request.is_json:
+            token = request.json.get('token')
+        if not token or token not in admin_sessions:
+            return jsonify({"success": False, "message": "Unauthorized"}), 401
+        
         try:
             data = request.json
             settings_db.update(data)
@@ -974,15 +1027,16 @@ init_critical_files()
 
 # --- ADMIN ENDPOINTS ---
 @app.route('/api/admin/clear-activity', methods=['POST'])
+@admin_required
 def clear_activity():
     global recent_activities
     recent_activities = []
-    safe_save_json(ACTIVITIES_FILE, [])
     safe_save_json(ACTIVITIES_FILE, [])
     return jsonify({"success": True})
 
 # --- ANALYTICS ENDPOINTS ---
 @app.route('/api/admin/analytics', methods=['GET'])
+@admin_required
 def get_analytics():
     # Category Sales
     category_sales = {}
@@ -1054,6 +1108,7 @@ def subscribe():
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route('/api/admin/delete-product', methods=['POST'])
+@admin_required
 def delete_product():
     data = request.json
     pid = data.get('id')
@@ -1062,27 +1117,6 @@ def delete_product():
     safe_save_json(PRODUCTS_FILE, products_db)
     return jsonify({"success": True})
 
-@app.route('/api/admin/login', methods=['POST'])
-def admin_login():
-    data = request.json
-    if data.get('password') == 'admin123': # Simple hardcoded for now
-        token = f"admin-session-{random.randint(1000,9999)}"
-        return jsonify({"success": True, "token": token})
-    return jsonify({"success": False}), 401
-
-@app.route('/api/admin/stats', methods=['GET'])
-def admin_stats():
-    total_revenue = sum(float(o.get('total', 0)) for o in orders_db if o.get('payment_status') == 'Paid')
-    return jsonify({
-        "totalRevenue": int(total_revenue),
-        "totalOrders": len(orders_db),
-        "pendingOrders": len([o for o in orders_db if o.get('delivery_status') == 'Processing']),
-        "totalUsers": len(users_db)
-    })
-
-@app.route('/api/admin/pending-payments', methods=['GET'])
-def get_pending_payments():
-    return jsonify(pending_verifications)
 
 # Global error handler to prevent HTML errors
 @app.errorhandler(500)

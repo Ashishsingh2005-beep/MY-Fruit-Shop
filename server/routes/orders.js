@@ -57,7 +57,7 @@ router.post('/', protect, async (req, res) => {
       },
       payment: {
         method: payment?.method || 'COD',
-        status: payment?.method === 'COD' ? 'Pending' : 'Pending'
+        status: payment?.method === 'COD' ? 'Pending' : 'Paid'
       },
       delivery: {
         status: 'Processing',
