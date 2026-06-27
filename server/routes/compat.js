@@ -4,6 +4,8 @@ const User = require('../models/User');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
 const axios = require('axios');
+const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 
 // In-memory OTP store
 const otpStore = new Map();
@@ -398,6 +400,109 @@ Be friendly, brief (under 80 words), and use emojis. Reply in the same language 
     }
 
     res.json({ success: true, response });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Admin Auth Middleware for compatibility routes
+const adminProtect = async (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ success: false, message: 'Not authorized' });
+
+  try {
+    const jwtSecret = process.env.JWT_SECRET || 'ajay_fruit_mart_secret_key_2024_super_secure';
+    const decoded = jwt.verify(token, jwtSecret);
+    if (decoded.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Admin access required' });
+    }
+    req.admin = decoded;
+    next();
+  } catch (err) {
+    res.status(401).json({ success: false, message: 'Invalid token' });
+  }
+};
+
+// Dynamic Mongoose model for PaymentVerification
+const PaymentVerificationSchema = new mongoose.Schema({
+  verificationId: { type: String, required: true, unique: true },
+  user: { type: mongoose.Schema.Types.Mixed },
+  amount: { type: Number, required: true },
+  status: { type: String, enum: ['pending', 'approved'], default: 'pending' },
+  createdAt: { type: Date, default: Date.now }
+});
+const PaymentVerification = mongoose.models.PaymentVerification || mongoose.model('PaymentVerification', PaymentVerificationSchema);
+
+// @route   POST /api/verify-payment
+router.post('/verify-payment', async (req, res) => {
+  try {
+    const { user, amount } = req.body;
+    const req_id = `PAY-${Date.now()}`;
+    
+    await PaymentVerification.create({
+      verificationId: req_id,
+      user: user || 'Unknown',
+      amount: amount || 0,
+      status: 'pending'
+    });
+    
+    res.json({ success: true, req_id });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// @route   GET /api/check-payment-status
+router.get('/check-payment-status', async (req, res) => {
+  try {
+    const { req_id } = req.query;
+    if (!req_id) return res.status(400).json({ status: 'error', message: 'req_id is required' });
+    
+    const verification = await PaymentVerification.findOne({ verificationId: req_id });
+    if (!verification) {
+      return res.status(404).json({ status: 'not_found' });
+    }
+    
+    res.json({ status: verification.status });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+// @route   GET /api/admin/pending-payments
+router.get('/admin/pending-payments', adminProtect, async (req, res) => {
+  try {
+    const pendings = await PaymentVerification.find({ status: 'pending' }).sort({ createdAt: -1 });
+    const transformed = pendings.map(p => ({
+      id: p.verificationId,
+      user: typeof p.user === 'object' ? `${p.user.name} (${p.user.phone})` : String(p.user),
+      amount: p.amount,
+      timestamp: p.createdAt.toISOString().replace('T', ' ').slice(0, 19),
+      time: p.createdAt.toISOString().replace('T', ' ').slice(0, 19)
+    }));
+    res.json(transformed);
+  } catch (err) {
+    res.status(500).json([]);
+  }
+});
+
+// @route   POST /api/admin/approve-payment
+router.post('/admin/approve-payment', adminProtect, async (req, res) => {
+  try {
+    const { req_id } = req.body;
+    if (!req_id) return res.status(400).json({ success: false, message: 'req_id is required' });
+    
+    const verification = await PaymentVerification.findOneAndUpdate(
+      { verificationId: req_id },
+      { status: 'approved' },
+      { new: true }
+    );
+    
+    if (!verification) {
+      return res.status(404).json({ success: false, message: 'Verification not found' });
+    }
+    
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
