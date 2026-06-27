@@ -6,6 +6,7 @@ const OrderSchema = new mongoose.Schema({
   userPhone: { type: String, required: true },
   userName: { type: String },
   userAddress: { type: String },
+  deliveryType: { type: String, enum: ['DELIVERY', 'TAKEAWAY'], default: 'DELIVERY' },
 
   items: [{
     product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },

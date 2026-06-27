@@ -10,7 +10,7 @@ const { protect } = require('../middleware/auth');
 // @access  Private
 router.post('/', protect, async (req, res) => {
   try {
-    const { items, pricing, payment, userAddress } = req.body;
+    const { items, pricing, payment, userAddress, deliveryType } = req.body;
     const user = req.user;
 
     // Validate items and calculate server-side total
@@ -37,8 +37,9 @@ router.post('/', protect, async (req, res) => {
       await Product.findByIdAndUpdate(product._id, { $inc: { soldCount: item.qty } });
     }
 
+    const isTakeAway = deliveryType === 'TAKEAWAY';
     // Delivery fee logic
-    const deliveryFee = calculatedTotal >= 499 ? 0 : 30;
+    const deliveryFee = isTakeAway ? 0 : (calculatedTotal >= 499 ? 0 : 30);
     const discount = pricing?.discount || 0;
     const finalTotal = calculatedTotal + deliveryFee - discount;
 
@@ -46,7 +47,8 @@ router.post('/', protect, async (req, res) => {
       user: user._id,
       userPhone: user.phone,
       userName: user.name,
-      userAddress: userAddress || user.address,
+      userAddress: isTakeAway ? "Take Away (Self Pickup)" : (userAddress || user.address),
+      deliveryType: deliveryType || 'DELIVERY',
       items: orderItems,
       pricing: {
         subtotal: calculatedTotal,

@@ -166,7 +166,7 @@ router.post('/login', async (req, res) => {
 // @route   POST /api/order
 router.post('/order', async (req, res) => {
   try {
-    const { user, cart, total, payment } = req.body;
+    const { user, cart, total, payment, deliveryType } = req.body;
     if (!user || !user.phone) {
       return res.status(400).json({ success: false, error: 'User details required' });
     }
@@ -194,14 +194,16 @@ router.post('/order', async (req, res) => {
       }
     }
 
+    const isTakeAway = deliveryType === 'TAKEAWAY';
     const order = await Order.create({
       userPhone: user.phone,
       userName: user.name,
-      userAddress: user.address,
+      userAddress: isTakeAway ? "Take Away (Self Pickup)" : user.address,
+      deliveryType: deliveryType || 'DELIVERY',
       items: orderItems,
       pricing: {
         subtotal: total,
-        deliveryFee: total >= 199 ? 0 : 30,
+        deliveryFee: isTakeAway ? 0 : (total >= 199 ? 0 : 30),
         total: total
       },
       payment: {

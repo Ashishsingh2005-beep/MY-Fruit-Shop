@@ -1032,11 +1032,19 @@
                         const paymentMethod = o.payment && typeof o.payment === 'object' ? o.payment.method : (o.payment || 'Unknown');
                         const paymentStatus = o.payment && typeof o.payment === 'object' ? o.payment.status : (o.payment_status || 'Pending');
                         const deliveryStatus = o.delivery && typeof o.delivery === 'object' ? o.delivery.status : (o.delivery_status || 'Processing');
+                        const deliveryType = o.deliveryType || 'DELIVERY';
 
                         return `
                             <tr>
                                 <td style="color:var(--primary-color)">#${displayId}</td>
-                                <td>${customerName}</td>
+                                <td>
+                                    ${customerName}
+                                    <div style="font-size:0.75rem; margin-top:2px;">
+                                        ${deliveryType === 'TAKEAWAY' 
+                                            ? '<span style="background:rgba(234,179,8,0.15); color:#eab308; padding:2px 6px; border-radius:4px; font-weight:bold;">🛍️ Take Away</span>' 
+                                            : '<span style="background:rgba(59,130,246,0.15); color:#3b82f6; padding:2px 6px; border-radius:4px; font-weight:bold;">🚚 Delivery</span>'}
+                                    </div>
+                                </td>
                                 <td style="font-size:0.8rem;">${itemsStr}</td>
                                 <td style="font-size:0.8rem; color:#ccc;">${address}</td>
                                 <td>₹${total}</td>

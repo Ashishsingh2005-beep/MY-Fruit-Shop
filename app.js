@@ -821,7 +821,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         ],
         route: 'home',
-        user: {}
+        user: {},
+        deliveryType: 'DELIVERY'
     };
 
     // --- Backend Integration ---
@@ -1500,26 +1501,52 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                             ` : `
                                 <div class="checkout-form">
-                                    <h3 style="font-family: var(--font-serif); margin-bottom: 1.5rem; color: var(--primary-color);">Delivery Details 🚚</h3>
+                                    <h3 style="font-family: var(--font-serif); margin-bottom: 1.5rem; color: var(--primary-color);">Order Details 🛒</h3>
+                                    
+                                    <!-- Order Mode Toggle -->
+                                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                                        <label style="display: block; margin-bottom: 0.6rem; font-weight: 600; font-size: 0.95rem; color: var(--text-muted);">Choose Order Type</label>
+                                        <div style="display: flex; gap: 0.8rem;">
+                                            <button onclick="window.setDeliveryType('DELIVERY')" class="btn ${state.deliveryType === 'DELIVERY' ? 'btn-primary' : 'btn-outline'}" style="flex: 1; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 0.9rem; text-transform: none;">
+                                                🚚 Home Delivery
+                                            </button>
+                                            <button onclick="window.setDeliveryType('TAKEAWAY')" class="btn ${state.deliveryType === 'TAKEAWAY' ? 'btn-primary' : 'btn-outline'}" style="flex: 1; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 0.9rem; text-transform: none;">
+                                                🛍️ Take Away
+                                            </button>
+                                        </div>
+                                    </div>
+
                                     <div class="form-group">
                                         <label>Full Name</label>
-                                        <input type="text" id="c-name" placeholder="Enter your name" value="${state.user.name}" readonly>
+                                        <input type="text" id="c-name" placeholder="Enter your name" value="${state.user.name || ''}" readonly>
                                     </div>
                                     <div class="form-group">
                                         <label>Phone Number</label>
-                                        <input type="tel" id="c-phone" placeholder="+91 98765 43210" value="${state.user.phone}" readonly>
+                                        <input type="tel" id="c-phone" placeholder="+91 98765 43210" value="${state.user.phone || ''}" readonly>
                                     </div>
-                                    <div class="form-group">
-                                        <label>Address</label>
-                                        <textarea id="c-address" rows="3" placeholder="House No, Street, Locality">${state.user.address}</textarea>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>City & Pincode</label>
-                                        <div style="display: flex; gap: 1rem;">
-                                            <input type="text" id="c-city" placeholder="City" value="Delhi">
-                                            <input type="text" id="c-pincode" placeholder="Pincode">
+
+                                    ${state.deliveryType === 'TAKEAWAY' ? `
+                                        <div style="background: rgba(255,255,255,0.05); padding: 1.2rem; border-radius: 12px; border: 1px dashed var(--primary-color); margin-bottom: 1.5rem;">
+                                            <p style="margin: 0 0 0.5rem 0; font-weight: bold; color: var(--primary-color); font-size: 0.95rem;">📍 Store Self-Pickup Address:</p>
+                                            <p style="margin: 0; font-size: 0.9rem; color: var(--text-light); line-height: 1.4;">
+                                                Ajay Fruit Mart Store,<br>
+                                                Shop No. 12, Main Bazar,<br>
+                                                Near Metro Station Gate 2, Delhi
+                                            </p>
                                         </div>
-                                    </div>
+                                    ` : `
+                                        <div class="form-group">
+                                            <label>Address</label>
+                                            <textarea id="c-address" rows="3" placeholder="House No, Street, Locality">${state.user.address || ''}</textarea>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>City & Pincode</label>
+                                            <div style="display: flex; gap: 1rem;">
+                                                <input type="text" id="c-city" placeholder="City" value="Delhi">
+                                                <input type="text" id="c-pincode" placeholder="Pincode">
+                                            </div>
+                                        </div>
+                                    `}
                                     
                                     <div class="form-group" style="margin-top: 2rem;">
                                         <h3 style="font-family: var(--font-serif); margin-bottom: 1rem; color: var(--primary-color);">Payment Method 💳</h3>
@@ -1620,6 +1647,12 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
+     // Delivery type selector helper
+    window.setDeliveryType = function (type) {
+        state.deliveryType = type;
+        renderCart();
+    }
+
     // Removed dynamic generation to use user-provided static QR
     window.toggleQR = function (value) {
         const qr = document.getElementById('qr-container');
@@ -1684,13 +1717,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const distance = getUserDistance();
         // Rule: Free Delivery > 199 is only valid up to 3km
         // Base Fee: 40 (waived if total >= 199)
-        let baseDeliveryFee = itemTotal >= 199 ? 0 : 40;
-
-        // Distance Surcharge: >3km = 10rs/km
-        // E.g. 5km => (5-3)*10 = 20rs surcharge
+        let baseDeliveryFee = 0;
         let distanceSurcharge = 0;
-        if (distance > 3) {
-            distanceSurcharge = Math.ceil(distance - 3) * 10;
+
+        if (state.deliveryType !== 'TAKEAWAY') {
+            baseDeliveryFee = itemTotal >= 199 ? 0 : 40;
+            if (distance > 3) {
+                distanceSurcharge = Math.ceil(distance - 3) * 10;
+            }
         }
 
         const deliveryFee = baseDeliveryFee + distanceSurcharge;
@@ -1850,6 +1884,7 @@ document.addEventListener('DOMContentLoaded', () => {
             items: state.cart.map(item => `${item.name} (${item.qty || 1} ${getPriceUnit(item)})`).join(', '),
             total: totalAmount,
             delivery_status: 'Processing',
+            delivery_type: state.deliveryType || 'DELIVERY',
             payment_method: paymentMethod,
             payment_status: paymentMethod === 'UPI' ? 'Paid' : 'Pending',
             fullItems: [...state.cart], // Store for bill
@@ -1864,7 +1899,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     user: { name, phone, address },
                     cart: state.cart,
                     total: totalAmount,
-                    payment: paymentMethod
+                    payment: paymentMethod,
+                    deliveryType: state.deliveryType || 'DELIVERY'
                 })
             });
         } catch (e) {
@@ -1896,6 +1932,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.cart = []; // Clear cart
         updateCartUI();
 
+        const isTakeAway = newOrder.delivery_type === 'TAKEAWAY';
         const mainContent = document.getElementById('app-main');
         if (mainContent) {
             mainContent.innerHTML = `
@@ -1903,12 +1940,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div style="font-size: 5rem; margin-bottom: 1rem;">🎉</div>
                     <h1 style="font-family: var(--font-serif); margin-bottom: 1.5rem;">Order Placed Successfully!</h1>
                     <p style="color: var(--text-gray); font-size: 1.2rem; margin-bottom: 2rem;">
-                        Thank you <strong>${name}</strong>! Your order <strong>#${orderId}</strong> will be delivered soon.
+                        Thank you <strong>${name}</strong>! Your order <strong>#${orderId}</strong> ${isTakeAway ? 'will be ready for pickup soon' : 'will be delivered soon'}.
                     </p>
                     <div style="background: rgba(255,255,255,0.05); padding: 2rem; border-radius: 16px; margin-bottom: 2rem;">
                          <p style="margin-bottom: 0.5rem;">Total Paid: <strong style="color: var(--primary-color);">₹${totalAmount}</strong></p>
                         <p style="margin-bottom: 0.5rem;">Payment Mode: <strong>${paymentMethod}</strong></p>
-                        <p>Delivery Agent: <strong>Ramesh (9810xxxxxx)</strong></p>
+                        ${isTakeAway ? `
+                            <p>Order Mode: <strong style="color: var(--primary-color);">🛍️ Take Away (Self Pickup)</strong></p>
+                            <p>Pickup Location: <strong>Shop No. 12, Main Bazar, Delhi</strong></p>
+                        ` : `
+                            <p>Order Mode: <strong>🚚 Home Delivery</strong></p>
+                            <p>Delivery Agent: <strong>Ramesh (9810xxxxxx)</strong></p>
+                        `}
                     </div>
                     
                     <div style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 2rem;">
@@ -2079,16 +2122,20 @@ document.addEventListener('DOMContentLoaded', () => {
     window.placeOrder = async function () {
         const name = document.getElementById('c-name').value;
         const phone = document.getElementById('c-phone').value;
-        const address = document.getElementById('c-address').value;
+        const address = state.deliveryType === 'TAKEAWAY' 
+            ? "Take Away (Self Pickup)" 
+            : (document.getElementById('c-address')?.value || '');
         const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
 
         // Update global user
         state.user.name = name;
         state.user.phone = phone;
-        state.user.address = address;
+        if (state.deliveryType !== 'TAKEAWAY') {
+            state.user.address = address;
+        }
         localStorage.setItem('fruitShopUser', JSON.stringify(state.user));
 
-        if (!name || !phone || !address) {
+        if (!name || !phone || (state.deliveryType === 'DELIVERY' && !address)) {
             alert("Please fill in all delivery details!");
             return;
         }
