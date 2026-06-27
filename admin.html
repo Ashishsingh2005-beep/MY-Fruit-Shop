@@ -721,11 +721,15 @@
             try {
                 const res = await fetchAdmin(`${API_BASE}/api/admin/stats`);
                 const data = await res.json();
-                document.getElementById('stat-revenue').textContent = `₹${data.totalRevenue}`;
-                document.getElementById('stat-total-orders').textContent = data.totalOrders;
-                document.getElementById('stat-pending-orders').textContent = data.pendingOrders;
-                document.getElementById('stat-total-users').textContent = data.totalUsers;
-            } catch (e) { }
+                const stats = data.stats || data;
+                
+                document.getElementById('stat-revenue').textContent = `₹${stats.totalRevenue !== undefined ? stats.totalRevenue : 0}`;
+                document.getElementById('stat-total-orders').textContent = stats.totalOrders !== undefined ? stats.totalOrders : 0;
+                document.getElementById('stat-pending-orders').textContent = stats.pendingOrders !== undefined ? stats.pendingOrders : 0;
+                document.getElementById('stat-total-users').textContent = stats.totalUsers !== undefined ? stats.totalUsers : 0;
+            } catch (e) {
+                console.error("Failed to update stats:", e);
+            }
         }
 
         let lastCount = -1;
@@ -748,6 +752,7 @@
                 console.warn("Chart.js not loaded. Skipping charts.");
                 return;
             }
+            if (!orders || !orders.length) return;
 
             const salesCtx = document.getElementById('salesChart').getContext('2d');
             const statusCtx = document.getElementById('statusChart').getContext('2d');
@@ -755,8 +760,9 @@
             // Process Sales Data (last 7 days)
             const dailySales = {};
             orders.forEach(o => {
-                const date = o.time.split(',')[0]; // Simple date extraction
-                dailySales[date] = (dailySales[date] || 0) + parseFloat(o.total);
+                const date = o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-IN') : (o.time ? o.time.split(',')[0] : 'N/A');
+                const totalVal = parseFloat(o.pricing ? o.pricing.total : (o.total || 0));
+                dailySales[date] = (dailySales[date] || 0) + totalVal;
             });
             const labels = Object.keys(dailySales).slice(-7);
             const data = labels.map(l => dailySales[l]);
@@ -783,7 +789,16 @@
 
             // Process Status Data
             const statusCounts = { 'Processing': 0, 'Shipped': 0, 'Delivered': 0, 'Cancelled': 0 };
-            orders.forEach(o => statusCounts[o.delivery_status] = (statusCounts[o.delivery_status] || 0) + 1);
+            orders.forEach(o => {
+                const status = o.delivery ? o.delivery.status : o.delivery_status;
+                if (status === 'Out for Delivery') {
+                    statusCounts['Shipped'] = (statusCounts['Shipped'] || 0) + 1;
+                } else if (statusCounts[status] !== undefined) {
+                    statusCounts[status] = (statusCounts[status] || 0) + 1;
+                } else {
+                    statusCounts[status] = 1;
+                }
+            });
 
             if (statusChart) statusChart.destroy();
             statusChart = new Chart(statusCtx, {
@@ -805,17 +820,19 @@
 
         async function updateForecastChart() {
             try {
-                const res = await fetchAdmin(`${API_BASE}/api/demand-forecast`);
+                let res = await fetchAdmin(`${API_BASE}/api/admin/demand-forecast`);
+                if (!res.ok) {
+                    res = await fetchAdmin(`${API_BASE}/api/demand-forecast`);
+                }
                 const data = await res.json();
                 if (!data.success) return;
 
                 const ctx = document.getElementById('forecastChart').getContext('2d');
                 const labels = data.forecast.map(f => f.day);
-                const values = data.forecast.map(f => f.sales);
+                const values = data.forecast.map(f => f.orders !== undefined ? f.orders : (f.sales !== undefined ? f.sales : 0));
 
                 if (forecastChart) forecastChart.destroy();
 
-                // Create Gradient
                 const gradient = ctx.createLinearGradient(0, 0, 0, 400);
                 gradient.addColorStop(0, 'rgba(217, 70, 239, 0.5)'); // Fuchsia
                 gradient.addColorStop(1, 'rgba(217, 70, 239, 0.0)');
@@ -875,15 +892,30 @@
                 const data = await res.json();
                 if (!data.success) return;
 
+                const analytics = data.analytics || data;
+                const categorySales = analytics.categorySales || analytics.category_sales || {};
+                const topProducts = analytics.topProducts || analytics.top_products || [];
+
+                let categorySalesDict = {};
+                if (Array.isArray(categorySales)) {
+                    categorySales.forEach(item => {
+                        if (item._id) {
+                            categorySalesDict[item._id] = item.total || 0;
+                        }
+                    });
+                } else {
+                    categorySalesDict = categorySales;
+                }
+
                 // Category Chart
                 const catCtx = document.getElementById('categoryChart').getContext('2d');
                 if (categoryChart) categoryChart.destroy();
                 categoryChart = new Chart(catCtx, {
                     type: 'pie',
                     data: {
-                        labels: Object.keys(data.category_sales),
+                        labels: Object.keys(categorySalesDict),
                         datasets: [{
-                            data: Object.values(data.category_sales),
+                            data: Object.values(categorySalesDict),
                             backgroundColor: ['#f59e0b', '#10b981', '#ef4444', '#3b82f6'],
                             borderWidth: 0
                         }]
@@ -894,13 +926,17 @@
                 // Top Items Chart
                 const topCtx = document.getElementById('topItemsChart').getContext('2d');
                 if (topItemsChart) topItemsChart.destroy();
+
+                const topLabels = topProducts.map(p => p._id || p.name);
+                const topValues = topProducts.map(p => p.revenue !== undefined ? p.revenue : (p.sales || 0));
+
                 topItemsChart = new Chart(topCtx, {
                     type: 'bar',
                     data: {
-                        labels: data.top_products.map(p => p.name),
+                        labels: topLabels,
                         datasets: [{
                             label: 'Sales',
-                            data: data.top_products.map(p => p.sales),
+                            data: topValues,
                             backgroundColor: '#3b82f6',
                             borderRadius: 6
                         }]
@@ -917,64 +953,136 @@
 
         async function refreshData() {
             try {
-                const [pRes, oRes] = await Promise.all([
-                    fetchAdmin(`${API_BASE}/api/admin/pending-payments`),
-                    fetchAdmin(`${API_BASE}/api/orders`)
-                ]);
-                const payments = await pRes.json();
-                const orders = await oRes.json();
+                let payments = [];
+                try {
+                    const pRes = await fetchAdmin(`${API_BASE}/api/admin/pending-payments`);
+                    if (pRes.ok) payments = await pRes.json();
+                } catch (e) {
+                    console.warn("Pending payments not supported or offline");
+                }
+
+                let orders = [];
+                try {
+                    let oRes = await fetchAdmin(`${API_BASE}/api/admin/orders`);
+                    if (oRes.ok) {
+                        const oData = await oRes.json();
+                        orders = oData.orders || oData;
+                    } else {
+                        const oResFallback = await fetchAdmin(`${API_BASE}/api/orders`);
+                        if (oResFallback.ok) {
+                            orders = await oResFallback.json();
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch orders", e);
+                }
+
                 checkNew(orders);
                 updateCharts(orders);
                 updateForecastChart();
                 updateAnalyticsCharts();
 
                 const pBody = document.getElementById('payments-body');
-                document.getElementById('payments-empty').style.display = payments.length ? 'none' : 'block';
-                pBody.innerHTML = payments.map(p => `
-                    <tr>
-                        <td>${p.timestamp || p.time}</td>
-                        <td>${p.user}</td>
-                        <td style="color:#fbbf24; font-weight:700;">₹${p.amount}</td>
-                        <td><button class="action-btn" onclick="approve('${p.id}')">Approve</button></td>
-                    </tr>
-                `).join('');
+                if (pBody) {
+                    document.getElementById('payments-empty').style.display = payments.length ? 'none' : 'block';
+                    pBody.innerHTML = payments.map(p => `
+                        <tr>
+                            <td>${p.timestamp || p.time}</td>
+                            <td>${p.user}</td>
+                            <td style="color:#fbbf24; font-weight:700;">₹${p.amount}</td>
+                            <td><button class="action-btn" onclick="approve('${p.id}')">Approve</button></td>
+                        </tr>
+                    `).join('');
+                }
 
                 const filt = document.getElementById('order-filter').value;
-                const filtered = filt === 'All' ? orders : orders.filter(o => o.delivery_status === filt);
-                document.getElementById('orders-body').innerHTML = filtered.map(o => `
-                    <tr>
-                        <td style="color:var(--primary-color)">#${o.id.split('-')[1]}</td>
-                        <td>${o.name}</td>
-                        <td style="font-size:0.8rem;">${o.items}</td>
-                        <td style="font-size:0.8rem; color:#ccc;">${o.address}</td>
-                        <td>₹${o.total}</td>
-                        <td>
-                            <div style="font-size:0.8rem; color:#93c5fd; margin-bottom:4px; font-weight:bold;">${o.payment || 'Unknown'}</div>
-                            <select onchange="updOrder('${o.id}','payment_status',this.value)" style="padding:4px; background:#111; color:white; border:1px solid #333; border-radius:4px; width: 100%;">
-                                <option value="Pending" ${o.payment_status === 'Pending' ? 'selected' : ''}>Pending</option>
-                                <option value="Paid" ${o.payment_status === 'Paid' ? 'selected' : ''}>Paid</option>
-                            </select>
-                        </td>
-                        <td>
-                            <select onchange="updOrder('${o.id}','delivery_status',this.value)" style="padding:4px; background:#111; color:white; border:1px solid #333; border-radius:4px; width: 100%;">
-                                <option value="Processing" ${o.delivery_status === 'Processing' ? 'selected' : ''}>Processing</option>
-                                <option value="Shipped" ${o.delivery_status === 'Shipped' ? 'selected' : ''}>Shipped</option>
-                                <option value="Delivered" ${o.delivery_status === 'Delivered' ? 'selected' : ''}>Delivered</option>
-                                <option value="Cancelled" ${o.delivery_status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
-                            </select>
-                        </td>
-                    </tr>
-                `).join('');
-            } catch (e) { }
+                const filtered = filt === 'All' ? orders : orders.filter(o => {
+                    const status = o.delivery ? o.delivery.status : o.delivery_status;
+                    return status === filt;
+                });
+
+                const ordersBody = document.getElementById('orders-body');
+                if (ordersBody) {
+                    ordersBody.innerHTML = filtered.map(o => {
+                        const mongoId = o._id || '';
+                        const rawId = o.orderId || o.id || 'ORD-UNKNOWN';
+                        const displayId = rawId.split('-')[1] || rawId.slice(-6);
+                        const customerName = o.userName || o.name || (o.user && o.user.name) || 'Guest';
+                        
+                        let itemsStr = '';
+                        if (Array.isArray(o.items)) {
+                            itemsStr = o.items.map(item => `${item.name} x${item.qty}`).join(', ');
+                        } else {
+                            itemsStr = o.items || '';
+                        }
+
+                        const address = o.userAddress || o.address || 'N/A';
+                        const total = o.pricing ? o.pricing.total : (o.total || 0);
+                        const paymentMethod = o.payment && typeof o.payment === 'object' ? o.payment.method : (o.payment || 'Unknown');
+                        const paymentStatus = o.payment && typeof o.payment === 'object' ? o.payment.status : (o.payment_status || 'Pending');
+                        const deliveryStatus = o.delivery && typeof o.delivery === 'object' ? o.delivery.status : (o.delivery_status || 'Processing');
+
+                        return `
+                            <tr>
+                                <td style="color:var(--primary-color)">#${displayId}</td>
+                                <td>${customerName}</td>
+                                <td style="font-size:0.8rem;">${itemsStr}</td>
+                                <td style="font-size:0.8rem; color:#ccc;">${address}</td>
+                                <td>₹${total}</td>
+                                <td>
+                                    <div style="font-size:0.8rem; color:#93c5fd; margin-bottom:4px; font-weight:bold;">${paymentMethod}</div>
+                                    <select onchange="updOrder('${rawId}','payment_status',this.value,'${mongoId}')" style="padding:4px; background:#111; color:white; border:1px solid #333; border-radius:4px; width: 100%;">
+                                        <option value="Pending" ${paymentStatus === 'Pending' ? 'selected' : ''}>Pending</option>
+                                        <option value="Paid" ${paymentStatus === 'Paid' ? 'selected' : ''}>Paid</option>
+                                        <option value="Failed" ${paymentStatus === 'Failed' ? 'selected' : ''}>Failed</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <select onchange="updOrder('${rawId}','delivery_status',this.value,'${mongoId}')" style="padding:4px; background:#111; color:white; border:1px solid #333; border-radius:4px; width: 100%;">
+                                        <option value="Processing" ${deliveryStatus === 'Processing' ? 'selected' : ''}>Processing</option>
+                                        <option value="Confirmed" ${deliveryStatus === 'Confirmed' ? 'selected' : ''}>Confirmed</option>
+                                        <option value="Preparing" ${deliveryStatus === 'Preparing' ? 'selected' : ''}>Preparing</option>
+                                        <option value="Out for Delivery" ${deliveryStatus === 'Out for Delivery' || deliveryStatus === 'Shipped' ? 'selected' : ''}>Out for Delivery</option>
+                                        <option value="Delivered" ${deliveryStatus === 'Delivered' ? 'selected' : ''}>Delivered</option>
+                                        <option value="Cancelled" ${deliveryStatus === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                                    </select>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            } catch (e) {
+                console.error("Failed to refresh data", e);
+            }
         }
 
-        async function updOrder(id, type, val) {
-            await fetchAdmin(`${API_BASE}/api/admin/update-order`, {
-                method: 'POST',
-                body: JSON.stringify({ order_id: id, type, value: val })
-            });
-            refreshData();
-            updateStats();
+        async function updOrder(id, type, val, mongoId) {
+            try {
+                if (mongoId) {
+                    const body = {};
+                    if (type === 'payment_status') body.paymentStatus = val;
+                    if (type === 'delivery_status') body.deliveryStatus = val;
+
+                    const res = await fetchAdmin(`${API_BASE}/api/admin/orders/${mongoId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(body)
+                    });
+                    if (res.ok) {
+                        refreshData();
+                        updateStats();
+                        return;
+                    }
+                }
+
+                await fetchAdmin(`${API_BASE}/api/admin/update-order`, {
+                    method: 'POST',
+                    body: JSON.stringify({ order_id: id, type, value: val })
+                });
+                refreshData();
+                updateStats();
+            } catch (e) {
+                console.error("Error updating order", e);
+            }
         }
 
         async function approve(id) {
