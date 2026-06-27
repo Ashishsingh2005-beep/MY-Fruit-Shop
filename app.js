@@ -1530,8 +1530,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                             <p style="margin: 0 0 0.5rem 0; font-weight: bold; color: var(--primary-color); font-size: 0.95rem;">📍 Store Self-Pickup Address:</p>
                                             <p style="margin: 0; font-size: 0.9rem; color: var(--text-light); line-height: 1.4;">
                                                 Ajay Fruit Mart Store,<br>
-                                                Shop No. 12, Main Bazar,<br>
-                                                Near Metro Station Gate 2, Delhi
+                                                Main Rawta More Chowk,<br>
+                                                near Neem Tree
                                             </p>
                                         </div>
                                     ` : `
@@ -1947,7 +1947,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p style="margin-bottom: 0.5rem;">Payment Mode: <strong>${paymentMethod}</strong></p>
                         ${isTakeAway ? `
                             <p>Order Mode: <strong style="color: var(--primary-color);">🛍️ Take Away (Self Pickup)</strong></p>
-                            <p>Pickup Location: <strong>Shop No. 12, Main Bazar, Delhi</strong></p>
+                            <p>Pickup Location: <strong>Main Rawta More Chowk, near Neem Tree</strong></p>
                         ` : `
                             <p>Order Mode: <strong>🚚 Home Delivery</strong></p>
                             <p>Delivery Agent: <strong>Ramesh (9810xxxxxx)</strong></p>
@@ -2123,7 +2123,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const name = document.getElementById('c-name').value;
         const phone = document.getElementById('c-phone').value;
         const address = state.deliveryType === 'TAKEAWAY' 
-            ? "Take Away (Self Pickup)" 
+            ? "Take Away (Main Rawta More Chowk, near Neem Tree)" 
             : (document.getElementById('c-address')?.value || '');
         const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
 
