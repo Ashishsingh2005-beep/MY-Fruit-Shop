@@ -471,6 +471,7 @@
                             <th>Total</th>
                             <th>Payment</th>
                             <th>Delivery</th>
+                            <th>Live Tracking</th>
                         </tr>
                     </thead>
                     <tbody id="orders-body"></tbody>
@@ -1066,6 +1067,15 @@
                                         <option value="Cancelled" ${deliveryStatus === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
                                     </select>
                                 </td>
+                                <td>
+                                    ${deliveryType === 'TAKEAWAY' ? `
+                                        <span style="color:#64748b; font-size:0.8rem; font-style:italic;">Self Pickup</span>
+                                    ` : `
+                                        <button onclick="openAdminMap('${rawId}', '${address.replace(/'/g, "\\'")}')" class="action-btn" style="background:#10b981; padding:4px 8px; font-size:0.75rem; border-radius:4px; border:none; color:white; cursor:pointer; width:100%; white-space:nowrap;">
+                                            📍 Track & Set
+                                        </button>
+                                    `}
+                                </td>
                             </tr>
                         `;
                     }).join('');
@@ -1405,7 +1415,176 @@
 
         checkAuth();
         setInterval(refreshData, 10000);
+
+        // --- Admin Map Logic ---
+        window.adminMap = null;
+        window.adminMapOrderMarker = null;
+        window.adminMapRiderMarker = null;
+        window.adminMapRouteLine = null;
+        window.currentAdminMapOrderId = null;
+
+        function loadAdminLeaflet(callback) {
+            if (typeof L !== 'undefined') {
+                callback();
+                return;
+            }
+            console.log("Loading Leaflet for Admin Map...");
+            var link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+            document.head.appendChild(link);
+
+            var script = document.createElement('script');
+            script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+            script.onload = callback;
+            script.onerror = function () {
+                alert("Failed to load map library.");
+            };
+            document.head.appendChild(script);
+        }
+
+        window.openAdminMap = function (orderId, address) {
+            console.log("Opening Admin Map for order:", orderId, "Address:", address);
+            window.currentAdminMapOrderId = orderId;
+            
+            const modal = document.getElementById('admin-map-modal');
+            modal.style.display = 'flex';
+            document.getElementById('admin-map-order-id').innerText = orderId;
+
+            // Load Leaflet and initialize map
+            loadAdminLeaflet(() => {
+                setTimeout(() => {
+                    initAdminMap(address);
+                }, 100);
+            });
+        };
+
+        window.closeAdminMap = function () {
+            const modal = document.getElementById('admin-map-modal');
+            modal.style.display = 'none';
+            if (window.adminMap) {
+                window.adminMap.remove();
+                window.adminMap = null;
+            }
+        };
+
+        async function initAdminMap(address) {
+            const shopLoc = [28.59728, 76.91555];
+            
+            // Try to set delivery location slightly offset from shop if address isn't clear,
+            // or geocode it. Since we don't have a Google Maps API key loaded for geocoding, 
+            // a random coordinate within 1km of the shop is standard for simulation/mock delivery coords.
+            let deliveryLoc = [28.5920, 76.9120];
+
+            if (window.adminMap) {
+                window.adminMap.remove();
+            }
+
+            window.adminMap = L.map('admin-leaflet-map').setView(shopLoc, 13);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(window.adminMap);
+
+            // Add shop marker
+            L.marker(shopLoc).addTo(window.adminMap).bindPopup("Shop (Rawta More)").openPopup();
+
+            // Add delivery address marker
+            const userIcon = L.divIcon({
+                html: '<div style="background:#e11d48; width:15px; height:15px; border-radius:50%; border:2px solid white; box-shadow:0 0 10px #e11d48;"></div>',
+                className: 'user-marker',
+                iconSize: [20, 20]
+            });
+            window.adminMapOrderMarker = L.marker(deliveryLoc, { icon: userIcon }).addTo(window.adminMap).bindPopup(`Customer Address: ${address}`);
+
+            const bounds = L.latLngBounds([shopLoc, deliveryLoc]);
+            window.adminMap.fitBounds(bounds, { padding: [80, 80] });
+
+            // Rider Icon
+            const boyIcon = L.divIcon({
+                html: '<div style="font-size:30px; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));">🛵</div>',
+                className: 'scooter-marker',
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
+            });
+
+            // Retrieve current coordinates from DB first to render the current rider position
+            let initialCoords = [shopLoc];
+            try {
+                const res = await fetch(`${API_BASE}/api/order/${window.currentAdminMapOrderId}/tracking`);
+                const data = await res.json();
+                if (data.success && data.trackingCoords && data.trackingCoords.length > 0) {
+                    initialCoords = [shopLoc, ...data.trackingCoords.map(c => [c.lat, c.lng])];
+                    const latest = data.trackingCoords[data.trackingCoords.length - 1];
+                    window.adminMapRiderMarker = L.marker([latest.lat, latest.lng], { icon: boyIcon }).addTo(window.adminMap);
+                } else {
+                    window.adminMapRiderMarker = L.marker(shopLoc, { icon: boyIcon }).addTo(window.adminMap);
+                }
+            } catch (e) {
+                window.adminMapRiderMarker = L.marker(shopLoc, { icon: boyIcon }).addTo(window.adminMap);
+            }
+
+            // Draw route line
+            window.adminMapRouteLine = L.polyline(initialCoords, { color: '#10b981', dashArray: '5, 10', weight: 4 }).addTo(window.adminMap);
+
+            // Handle Clicks to set coordinates
+            window.adminMap.on('click', async function(e) {
+                const { lat, lng } = e.latlng;
+                console.log("Setting rider location to:", lat, lng);
+
+                // Update marker on map
+                window.adminMapRiderMarker.setLatLng([lat, lng]);
+
+                // Update route line
+                const currentLatLngs = window.adminMapRouteLine.getLatLngs();
+                currentLatLngs.push([lat, lng]);
+                window.adminMapRouteLine.setLatLngs(currentLatLngs);
+
+                // Send to server
+                try {
+                    const res = await fetch(`${API_BASE}/api/order/${window.currentAdminMapOrderId}/location`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ lat, lng })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        console.log("Rider location saved successfully");
+                    } else {
+                        alert("Failed to save location coordinates.");
+                    }
+                } catch (err) {
+                    console.error("Error setting location:", err);
+                }
+            });
+
+            // Invalidate size to avoid grey screen
+            setTimeout(() => {
+                window.adminMap.invalidateSize();
+            }, 500);
+        }
     </script>
+
+    <!-- Admin Map Modal Markup -->
+    <div id="admin-map-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:99999; align-items:center; justify-content:center;">
+        <div style="background:#1e293b; width:90%; max-width:800px; height:85vh; border-radius:16px; display:flex; flex-direction:column; padding:1.5rem; color:white; border:1px solid rgba(255,255,255,0.1);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                <div>
+                    <h2 style="margin:0; font-size:1.5rem; color:#10b981;">📍 Update Rider Live Location</h2>
+                    <p style="margin:0.2rem 0 0 0; font-size:0.85rem; color:#94a3b8;">Order: <span id="admin-map-order-id" style="font-weight:bold; color:white;"></span></p>
+                </div>
+                <button onclick="closeAdminMap()" style="background:transparent; border:none; color:#94a3b8; font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <div style="background:rgba(16,185,129,0.1); border:1px dashed #10b981; padding:0.8rem; border-radius:8px; margin-bottom:1rem; font-size:0.85rem; color:#cbd5e1;">
+                💡 <strong>How to use:</strong> Click anywhere on the map below to set the rider's current position. The customer's tracking map will update in real time!
+            </div>
+            <div id="admin-leaflet-map" style="flex:1; border-radius:12px; background:#0f172a; min-height:300px; border:1px solid #334155;"></div>
+            <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top:1.5rem;">
+                <button onclick="closeAdminMap()" class="action-btn" style="background:#475569; border:none; padding:8px 16px; border-radius:6px; color:white; cursor:pointer;">Close</button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

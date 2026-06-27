@@ -894,6 +894,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function finishLogin() {
         console.log("Finishing login. User:", state.user);
         localStorage.setItem('fruitShopUser', JSON.stringify(state.user));
+        logActivity({ type: 'login', details: 'Logged in successfully' });
 
         // CACHE LOGIC
         try {
@@ -1125,11 +1126,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.logoutUser = function () {
         if (confirm("Are you sure you want to logout?")) {
+            logActivity({ type: 'logout', details: 'Logged out successfully' });
             localStorage.removeItem('fruitShopUser');
             state.user = {};
             alert("Logged out successfully.");
             window.location.hash = ''; // Go home
-            window.location.reload(); // Reload to clear state cleanly
+            setTimeout(() => {
+                window.location.reload(); // Reload to clear state cleanly
+            }, 500);
         }
     };
 
@@ -1902,6 +1906,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     payment: paymentMethod,
                     deliveryType: state.deliveryType || 'DELIVERY'
                 })
+            });
+            logActivity({
+                type: 'place_order',
+                details: `Placed order #${orderId} (${newOrder.items.slice(0, 50)}...) - Total: ₹${totalAmount} via ${paymentMethod}`
             });
         } catch (e) {
             console.error("Order logging failed", e);
@@ -2820,6 +2828,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (data.success) {
                 showToast("Order cancelled successfully");
+                logActivity({ type: 'cancel_order', details: `Cancelled order #${orderId}` });
                 renderProfile(); // Refresh list
             } else {
                 showToast(data.message || "Cancellation failed", "❌");
@@ -4135,6 +4144,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         } catch (e) {}
 
                         showToast(`🎉 Subscription Activated! Plan: ${plan}`, "📦");
+                        logActivity({ type: 'subscribe', details: `Subscribed to plan: ${plan}` });
                         window.location.hash = '#profile';
                     }
                 } catch (e) {
@@ -4162,6 +4172,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             if (data.success) {
                 showToast("Subscription cancelled successfully", "📦");
+                logActivity({ type: 'cancel_subscription', details: 'Cancelled fruit box subscription' });
                 state.user.subscription = data.subscription;
                 localStorage.setItem('fruitShopUser', JSON.stringify(state.user));
                 renderProfile();

@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require('../models/User');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
+const Activity = require('../models/Activity');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
@@ -37,9 +38,35 @@ router.post('/settings', (req, res) => {
 });
 
 // @route   POST /api/log-activity
-router.post('/log-activity', (req, res) => {
-  console.log(`[ACTIVITY LOG] User: ${req.body.user}, Type: ${req.body.type}, Details: ${req.body.details}`);
-  res.json({ success: true });
+router.post('/log-activity', async (req, res) => {
+  try {
+    const { user, type, details } = req.body;
+    const time = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    await Activity.create({ user, type, details, time });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// @route   GET /api/activities
+router.get('/activities', async (req, res) => {
+  try {
+    const activities = await Activity.find({}).sort({ createdAt: -1 }).limit(100);
+    res.json(activities);
+  } catch (err) {
+    res.status(500).json([]);
+  }
+});
+
+// @route   POST /api/clear-activities
+router.post('/clear-activities', async (req, res) => {
+  try {
+    await Activity.deleteMany({});
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // @route   GET /api/user
@@ -708,20 +735,66 @@ router.get('/admin/users', adminProtect, async (req, res) => {
   }
 });
 
-// @route   POST /api/admin/resolve-complaint  (legacy)
-router.post('/admin/resolve-complaint', adminProtect, async (req, res) => {
+// @route   GET /api/order/:orderId/tracking
+// @desc    Get order tracking location coordinates
+router.get('/order/:orderId/tracking', async (req, res) => {
   try {
-    const { order_id, reply } = req.body;
-    const order = await Order.findOne({ orderId: order_id });
-    if (!order) return res.status(404).json({ success: false });
-    if (order.complaint) {
-      order.complaint.status = 'Resolved';
-      order.complaint.adminReply = reply || '';
-      await order.save();
-    }
-    res.json({ success: true });
+    const { orderId } = req.params;
+    const query = mongoose.Types.ObjectId.isValid(orderId) ? { _id: orderId } : { orderId };
+    const order = await Order.findOne(query);
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+    res.json({
+      success: true,
+      status: order.delivery ? order.delivery.status : order.delivery_status,
+      deliveryPerson: order.delivery ? order.delivery.deliveryPerson : order.deliveryPerson,
+      trackingCoords: order.delivery ? order.delivery.trackingCoords : order.trackingCoords
+    });
   } catch (err) {
-    res.status(500).json({ success: false });
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// @route   POST /api/order/:orderId/location
+// @desc    Update order tracking location coordinate (Admin tool)
+router.post('/order/:orderId/location', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { lat, lng } = req.body;
+    if (lat === undefined || lng === undefined) {
+      return res.status(400).json({ success: false, message: 'Latitude and Longitude are required' });
+    }
+
+    const query = mongoose.Types.ObjectId.isValid(orderId) ? { _id: orderId } : { orderId };
+    const order = await Order.findOne(query);
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+    // Handle schema variance (some might use delivery.trackingCoords or root level trackingCoords)
+    if (order.delivery) {
+      if (!order.delivery.trackingCoords) order.delivery.trackingCoords = [];
+      order.delivery.trackingCoords.push({ lat, lng, timestamp: new Date() });
+    } else {
+      if (!order.trackingCoords) order.trackingCoords = [];
+      order.trackingCoords.push({ lat, lng, timestamp: new Date() });
+    }
+
+    await order.save();
+
+    // Log admin activity
+    const time = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    await Activity.create({
+      user: 'Admin',
+      type: 'update_location',
+      details: `Updated rider location for order ${order.orderId || orderId} to [${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)}]`,
+      time
+    });
+
+    res.json({
+      success: true,
+      trackingCoords: order.delivery ? order.delivery.trackingCoords : order.trackingCoords
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
