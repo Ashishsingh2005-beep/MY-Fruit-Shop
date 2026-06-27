@@ -2376,7 +2376,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="order-card" style="background: rgba(255,255,255,0.03); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
                                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem;">
                                     <div>
-                                        <h3 style="font-size: 1.1rem; color: var(--primary-color); margin:0;">Order #${order.id.split('-')[1]}</h3>
+                                        <h3 style="font-size: 1.1rem; color: var(--primary-color); margin:0;">Order #${(order.id && order.id.includes('-')) ? order.id.split('-')[1] : (order.id || 'Unknown')}</h3>
                                         <p style="color: var(--text-gray); font-size: 0.8rem;">${order.time}</p>
                                     </div>
                                     <div style="text-align: right;">

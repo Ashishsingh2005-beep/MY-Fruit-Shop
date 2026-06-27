@@ -228,6 +228,28 @@ router.get('/orders', async (req, res) => {
       return {
         ...obj,
         id: o.orderId,
+        time: o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-IN', {
+          day: 'numeric',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit'
+        }) : 'Recent',
+        items: o.items.map(item => `${item.name} (${item.qty || item.quantity || 1})`).join(', '),
+        fullItems: o.items.map(item => ({
+          id: item.product || item._id,
+          name: item.name,
+          price: item.price,
+          qty: item.qty || item.quantity || 1,
+          category: item.category || 'Fruits'
+        })),
+        total: o.pricing.total,
+        breakdown: {
+          itemTotal: o.pricing.subtotal,
+          deliveryFee: o.pricing.deliveryFee,
+          discount: o.pricing.discount || 0
+        },
+        payment_method: o.payment.method,
+        payment_status: o.payment.status,
         status: o.delivery.status,
         delivery_status: o.delivery.status,
         delivery_person: o.delivery.deliveryPerson?.name || 'Rahul Kumar',
