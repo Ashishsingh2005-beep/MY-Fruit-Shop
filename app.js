@@ -1,6 +1,10 @@
 
 
 let API_BASE = localStorage.getItem('admin_api_base');
+if (API_BASE === 'https://my-fruit-shop-9ivd.onrender.com') {
+    localStorage.removeItem('admin_api_base');
+    API_BASE = null;
+}
 if (!API_BASE) {
     API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:') ? 'http://127.0.0.1:5000' : '';
 }
